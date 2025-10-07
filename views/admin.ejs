@@ -364,31 +364,76 @@
          </div>
 
          <div class="table-container" style="margin-bottom: 30px;">
-             <div class="table-header">
-                 <h2 class="table-title">
-                     <i class="fas fa-paper-plane"></i> Enviar Mensagens de Confirmação
-                 </h2>
-             </div>
-             <div style="padding: 20px;">
-                 <p style="margin-bottom: 20px; color: #64748b;">Envie mensagens personalizadas para todos os participantes com seus links únicos de confirmação.</p>
-                 
-                 <div style="margin-bottom: 15px;">
-                     <label style="display: block; margin-bottom: 5px; font-weight: 600;">URL do Webhook n8n:</label>
-                     <input type="url" id="webhookUrl" placeholder="<%= process.env.N8N_WEBHOOK_URL || 'https://seu-n8n.com/webhook/whatsapp' %>" required style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px;">
-                 </div>
-                 
-                 <div style="margin-bottom: 20px;">
-                     <label style="display: block; margin-bottom: 5px; font-weight: 600;">URL Base da Aplicação:</label>
-                     <input type="url" id="baseUrl" placeholder="<%= process.env.APP_BASE_URL || 'https://seu-dominio.com' %>" value="<%= process.env.APP_BASE_URL || 'http://localhost:3000' %>" required style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px;">
-                 </div>
-                 
-                 <button onclick="enviarMensagens()" class="btn btn-primary">
-                     <i class="fas fa-paper-plane"></i> Enviar Mensagens para Todos
-                 </button>
-                 
-                 <div id="resultadoEnvio" style="display: none; margin-top: 20px;"></div>
-             </div>
-         </div>
+            <div class="table-header">
+                <h2 class="table-title">
+                    <i class="fas fa-paper-plane"></i> Enviar Mensagens de Confirmação
+                </h2>
+            </div>
+            <div style="padding: 20px;">
+                <p style="margin-bottom: 20px; color: #64748b;">Selecione os participantes para enviar mensagens personalizadas com seus links únicos de confirmação.</p>
+                
+                <div style="margin-bottom: 15px; padding: 12px; background-color: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px;">
+                    <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                        <i class="fas fa-info-circle" style="color: #0ea5e9; margin-right: 8px;"></i>
+                        <strong style="color: #0c4a6e;">Webhook n8n Configurado:</strong>
+                    </div>
+                    <code style="color: #0c4a6e; font-size: 14px;"><%= process.env.N8N_WEBHOOK_URL || 'Não configurado no .env' %></code>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">URL Base da Aplicação:</label>
+                    <input type="url" id="baseUrl" placeholder="<%= process.env.APP_BASE_URL || 'https://seu-dominio.com' %>" value="<%= process.env.APP_BASE_URL || 'http://localhost:3000' %>" required style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                </div>
+
+                <!-- Seção de Seleção de Participantes -->
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="margin: 0; color: #1e293b;">Participantes Disponíveis</h3>
+                        <div>
+                            <button onclick="selecionarTodos()" class="btn" style="background-color: #10b981; color: white; margin-right: 10px; padding: 8px 16px; font-size: 14px;">
+                                <i class="fas fa-check-double"></i> Selecionar Todos
+                            </button>
+                            <button onclick="deselecionarTodos()" class="btn" style="background-color: #ef4444; color: white; padding: 8px 16px; font-size: 14px;">
+                                <i class="fas fa-times"></i> Desmarcar Todos
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="loadingParticipantes" style="text-align: center; padding: 20px; color: #64748b;">
+                        <i class="fas fa-spinner fa-spin"></i> Carregando participantes...
+                    </div>
+                    
+                    <div id="participantesContainer" style="display: none; max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead style="background-color: #f8f9fa; position: sticky; top: 0;">
+                                <tr>
+                                    <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; width: 50px;">
+                                        <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()" style="transform: scale(1.2);">
+                                    </th>
+                                    <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0;">Nome</th>
+                                    <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0;">Telefone</th>
+                                    <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0;">Código</th>
+                                    <th style="padding: 12px; text-align: center; border-bottom: 1px solid #e2e8f0;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="participantesTableBody">
+                                <!-- Participantes serão carregados aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div style="margin-top: 15px; padding: 10px; background-color: #f1f5f9; border-radius: 6px; font-size: 14px;">
+                        <span id="contadorSelecionados" style="font-weight: 600; color: #1e293b;">0 participantes selecionados</span>
+                    </div>
+                </div>
+                
+                <button onclick="enviarMensagens()" class="btn btn-primary" id="btnEnviarMensagens" disabled>
+                    <i class="fas fa-paper-plane"></i> Enviar Mensagens para Selecionados
+                </button>
+                
+                <div id="resultadoEnvio" style="display: none; margin-top: 20px;"></div>
+            </div>
+        </div>
 
         <div class="stats-grid">
             <div class="stat-card">
@@ -406,6 +451,10 @@
             <div class="stat-card">
                 <div class="stat-number" id="rotasGeradas">-</div>
                 <div class="stat-label">Rotas Geradas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="participantesImportados">-</div>
+                <div class="stat-label">Participantes Importados</div>
             </div>
         </div>
 
@@ -489,6 +538,7 @@
         // Carregar dados ao inicializar
         document.addEventListener('DOMContentLoaded', function() {
             carregarConfirmacoes();
+            carregarParticipantesEnvio();
         });
 
         async function carregarConfirmacoes() {
@@ -496,13 +546,17 @@
             document.getElementById('confirmTable').style.display = 'none';
 
             try {
-                const response = await fetch('/api/confirmacoes');
+                // Carregar confirmações e estatísticas em paralelo
+                const [confirmResponse, statsResponse] = await Promise.all([
+                    fetch('/api/confirmacoes'),
+                    fetch('/api/admin/stats')
+                ]);
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                if (!confirmResponse.ok) {
+                    throw new Error(`HTTP error! status: ${confirmResponse.status}`);
                 }
                 
-                const confirmacoes = await response.json();
+                const confirmacoes = await confirmResponse.json();
                 
                 // Verificar se confirmacoes é um array
                 if (!Array.isArray(confirmacoes)) {
@@ -510,7 +564,13 @@
                     throw new Error('Dados inválidos recebidos da API');
                 }
 
-                atualizarEstatisticas(confirmacoes);
+                // Carregar estatísticas do servidor se disponível
+                let stats = null;
+                if (statsResponse.ok) {
+                    stats = await statsResponse.json();
+                }
+
+                atualizarEstatisticas(confirmacoes, stats);
                 preencherTabela(confirmacoes);
 
                 document.getElementById('loading').style.display = 'none';
@@ -523,7 +583,7 @@
             }
         }
 
-        function atualizarEstatisticas(confirmacoes) {
+        function atualizarEstatisticas(confirmacoes, stats) {
             // Verificar se confirmacoes é um array válido
             if (!Array.isArray(confirmacoes)) {
                 console.error('atualizarEstatisticas: confirmacoes não é um array', confirmacoes);
@@ -537,7 +597,15 @@
             document.getElementById('totalConfirmacoes').textContent = total;
             document.getElementById('webhooksEnviados').textContent = enviados;
             document.getElementById('webhooksPendentes').textContent = pendentes;
-            document.getElementById('rotasGeradas').textContent = '...'; // Seria necessário outra consulta
+            
+            // Usar estatísticas do servidor se disponível, senão usar valores padrão
+            if (stats) {
+                document.getElementById('rotasGeradas').textContent = stats.rotasGeradas || 0;
+                document.getElementById('participantesImportados').textContent = stats.participantesImportados || 0;
+            } else {
+                document.getElementById('rotasGeradas').textContent = '...';
+                document.getElementById('participantesImportados').textContent = '...';
+            }
         }
 
         function preencherTabela(confirmacoes) {
@@ -688,16 +756,168 @@
              }
          }
 
+        // Variáveis globais para gerenciar participantes
+        let participantesDisponiveis = [];
+        let participantesSelecionados = new Set();
+
+        // Carregar participantes disponíveis para envio
+        async function carregarParticipantesEnvio() {
+            try {
+                const response = await fetch('/api/participantes-envio');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                participantesDisponiveis = await response.json();
+                renderizarParticipantes();
+                
+            } catch (error) {
+                console.error('Erro ao carregar participantes:', error);
+                document.getElementById('loadingParticipantes').innerHTML = 
+                    '<div style="color: #ef4444;">❌ Erro ao carregar participantes</div>';
+            }
+        }
+
+        // Renderizar tabela de participantes
+        function renderizarParticipantes() {
+            const tbody = document.getElementById('participantesTableBody');
+            tbody.innerHTML = '';
+            
+            if (participantesDisponiveis.length === 0) {
+                document.getElementById('loadingParticipantes').innerHTML = 
+                    '<div style="color: #64748b;">Nenhum participante disponível para envio</div>';
+                return;
+            }
+            
+            participantesDisponiveis.forEach(participante => {
+                const row = document.createElement('tr');
+                row.style.borderBottom = '1px solid #e2e8f0';
+                
+                const statusBadge = participante.confirmado 
+                    ? '<span style="background-color: #22c55e; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600;">✅ Confirmado</span>'
+                    : '<span style="background-color: #f59e0b; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600;">⏳ Pendente</span>';
+                
+                row.innerHTML = `
+                    <td style="padding: 12px; text-align: center;">
+                        <input type="checkbox" 
+                               value="${participante.id}" 
+                               onchange="toggleParticipante(${participante.id})"
+                               style="transform: scale(1.2);">
+                    </td>
+                    <td style="padding: 12px;">${participante.nome}</td>
+                    <td style="padding: 12px;">${participante.telefone}</td>
+                    <td style="padding: 12px; font-family: monospace; font-size: 13px;">${participante.codigo}</td>
+                    <td style="padding: 12px; text-align: center;">${statusBadge}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+            
+            document.getElementById('loadingParticipantes').style.display = 'none';
+            document.getElementById('participantesContainer').style.display = 'block';
+            atualizarContador();
+        }
+
+        // Toggle seleção de participante individual
+        function toggleParticipante(participanteId) {
+            if (participantesSelecionados.has(participanteId)) {
+                participantesSelecionados.delete(participanteId);
+            } else {
+                participantesSelecionados.add(participanteId);
+            }
+            atualizarContador();
+            atualizarSelectAll();
+        }
+
+        // Toggle selecionar todos
+        function toggleSelectAll() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            const checkboxes = document.querySelectorAll('#participantesTableBody input[type="checkbox"]');
+            
+            if (selectAllCheckbox.checked) {
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = true;
+                    participantesSelecionados.add(parseInt(checkbox.value));
+                });
+            } else {
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                    participantesSelecionados.delete(parseInt(checkbox.value));
+                });
+            }
+            atualizarContador();
+        }
+
+        // Selecionar todos os participantes
+        function selecionarTodos() {
+            const checkboxes = document.querySelectorAll('#participantesTableBody input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+                participantesSelecionados.add(parseInt(checkbox.value));
+            });
+            document.getElementById('selectAllCheckbox').checked = true;
+            atualizarContador();
+        }
+
+        // Desselecionar todos os participantes
+        function deselecionarTodos() {
+            const checkboxes = document.querySelectorAll('#participantesTableBody input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                participantesSelecionados.delete(parseInt(checkbox.value));
+            });
+            document.getElementById('selectAllCheckbox').checked = false;
+            atualizarContador();
+        }
+
+        // Atualizar contador e botão de envio
+        function atualizarContador() {
+            const contador = participantesSelecionados.size;
+            document.getElementById('contadorSelecionados').textContent = 
+                `${contador} participante${contador !== 1 ? 's' : ''} selecionado${contador !== 1 ? 's' : ''}`;
+            
+            const btnEnviar = document.getElementById('btnEnviarMensagens');
+            btnEnviar.disabled = contador === 0;
+            btnEnviar.style.opacity = contador === 0 ? '0.5' : '1';
+        }
+
+        // Atualizar estado do checkbox "selecionar todos"
+        function atualizarSelectAll() {
+            const totalCheckboxes = document.querySelectorAll('#participantesTableBody input[type="checkbox"]').length;
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            
+            if (participantesSelecionados.size === 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            } else if (participantesSelecionados.size === totalCheckboxes) {
+                selectAllCheckbox.checked = true;
+                selectAllCheckbox.indeterminate = false;
+            } else {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = true;
+            }
+        }
+
          // Função para enviar mensagens de confirmação
         async function enviarMensagens() {
-            const webhookUrl = document.getElementById('webhookUrl').value;
+            if (participantesSelecionados.size === 0) {
+                alert('Por favor, selecione pelo menos um participante para enviar mensagens.');
+                return;
+            }
+
             const baseUrl = document.getElementById('baseUrl').value;
             const resultadoDiv = document.getElementById('resultadoEnvio');
             
-            if (!webhookUrl || !baseUrl) {
-                alert('Por favor, preencha a URL do webhook e a URL base.');
+            if (!baseUrl) {
+                alert('Por favor, preencha a URL base.');
                 return;
             }
+
+            const btnEnviar = document.getElementById('btnEnviarMensagens');
+            const originalText = btnEnviar.innerHTML;
+            
+            btnEnviar.disabled = true;
+            btnEnviar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
             
             try {
                 resultadoDiv.style.display = 'block';
@@ -709,20 +929,60 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        webhookUrl: webhookUrl,
-                        baseUrl: baseUrl
+                        baseUrl: baseUrl,
+                        participantesSelecionados: Array.from(participantesSelecionados)
                     })
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
+                    let detalhesHtml = '';
+                    if (data.detalhes && data.detalhes.length > 0) {
+                        detalhesHtml = `
+                            <div class="detalhes-envio" style="margin-top: 15px;">
+                                <h4>Detalhes do Envio:</h4>
+                                <div class="tabela-detalhes" style="max-height: 300px; overflow-y: auto;">
+                                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                                        <thead>
+                                            <tr style="background-color: #f8f9fa;">
+                                                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Nome</th>
+                                                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Telefone</th>
+                                                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Código</th>
+                                                <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${data.detalhes.map(detalhe => `
+                                                <tr>
+                                                    <td style="padding: 6px; border: 1px solid #ddd;">${detalhe.nome}</td>
+                                                    <td style="padding: 6px; border: 1px solid #ddd;">${detalhe.telefone}</td>
+                                                    <td style="padding: 6px; border: 1px solid #ddd; font-family: monospace;">${detalhe.codigo}</td>
+                                                    <td style="padding: 6px; border: 1px solid #ddd; text-align: center;">
+                                                        ${detalhe.status === 'enviado' 
+                                                            ? '<span style="color: #22c55e; font-weight: bold;">✅ Enviado</span>' 
+                                                            : `<span style="color: #ef4444; font-weight: bold;">❌ Erro</span>${detalhe.erro ? `<br><small style="color: #666;">${detalhe.erro}</small>` : ''}`
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
                     resultadoDiv.innerHTML = `
                         <div class="success">
                             ✅ ${data.message}<br>
                             📊 Total: ${data.total} | Enviados: ${data.enviados} | Erros: ${data.erros}
+                            ${detalhesHtml}
                         </div>
                     `;
+                    
+                    // Limpar seleção após envio bem-sucedido
+                    deselecionarTodos();
                 } else {
                     resultadoDiv.innerHTML = `<div class="error">❌ ${data.error}</div>`;
                 }
@@ -730,6 +990,9 @@
             } catch (error) {
                 console.error('Erro ao enviar mensagens:', error);
                 resultadoDiv.innerHTML = '<div class="error">❌ Erro ao enviar mensagens</div>';
+            } finally {
+                btnEnviar.disabled = false;
+                btnEnviar.innerHTML = originalText;
             }
         }
 

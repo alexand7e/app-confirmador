@@ -391,6 +391,14 @@
             document.getElementById('loading').style.display = 'block';
             
             try {
+                // Buscar dados do participante pelo código
+                const participanteResponse = await fetch(`/api/participante/<%= codigo %>`);
+                let participanteData = { nome: 'Participante', telefone: 'N/A', email: '' };
+                
+                if (participanteResponse.ok) {
+                    participanteData = await participanteResponse.json();
+                }
+
                 const response = await fetch(`/api/confirmar/<%= codigo %>`, {
                     method: 'POST',
                     headers: {
@@ -398,9 +406,9 @@
                     },
                     body: JSON.stringify({ 
                         confirmacao: isConfirming,
-                        nome: 'Participante',
-                        telefone: 'N/A',
-                        email: ''
+                        nome: participanteData.nome,
+                        telefone: participanteData.telefone,
+                        email: participanteData.email || ''
                     })
                 });
                 

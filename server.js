@@ -82,6 +82,7 @@ async function initDatabase() {
                 codigo_rota VARCHAR(20) NOT NULL,
                 nome VARCHAR(255) NOT NULL,
                 telefone VARCHAR(20) NOT NULL,
+                email VARCHAR(255),
                 confirmado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 webhook_enviado BOOLEAN DEFAULT FALSE,
                 FOREIGN KEY (codigo_rota) REFERENCES rotas (codigo)
@@ -91,9 +92,20 @@ async function initDatabase() {
         await pool.query(`
             CREATE TABLE participantes_importados (
                 id SERIAL PRIMARY KEY,
+                carimbo_data_hora TEXT,
                 nome TEXT NOT NULL,
+                genero TEXT,
+                idade TEXT,
+                cpf TEXT,
+                cidade TEXT,
+                bairro TEXT,
+                aposentado TEXT,
                 telefone TEXT NOT NULL,
                 email TEXT,
+                projeto_extensao TEXT,
+                outro_projeto TEXT,
+                autorizacao_dados TEXT,
+                dificuldades TEXT,
                 importado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
@@ -106,8 +118,76 @@ async function initDatabase() {
         `);
 
         logger.info('Banco de dados PostgreSQL inicializado com sucesso!');
+        
+        // Carregar dados de teste automaticamente
+        await carregarDadosTeste();
+        
     } catch (error) {
         logger.error('Erro ao inicializar banco de dados:', error);
+        throw error;
+    }
+}
+
+// Função para carregar dados de teste automaticamente
+async function carregarDadosTeste() {
+    try {
+        logger.info('Carregando dados de teste automaticamente...');
+        
+        // Verificar se já existem dados de teste
+        const existingTest = await pool.query('SELECT COUNT(*) FROM rotas WHERE codigo LIKE \'TESTE_%\'');
+        if (parseInt(existingTest.rows[0].count) > 0) {
+            logger.info('Dados de teste já existem, pulando carregamento automático');
+            return;
+        }
+        
+        let importados = 0;
+        
+        // Dados de teste - removendo duplicação do Alexandre
+        const dadosTeste = [
+            {
+                nome: 'Marina',
+                telefone: '86999503015',
+                email: 'marina@teste.com'
+            }
+        ];
+        
+        for (const dadoTeste of dadosTeste) {
+            try {
+                // Inserir participante de teste
+                const participanteResult = await pool.query(`
+                    INSERT INTO participantes_importados 
+                    (nome, telefone, email) 
+                    VALUES ($1, $2, $3)
+                    RETURNING id
+                `, [
+                    dadoTeste.nome,
+                    dadoTeste.telefone,
+                    dadoTeste.email
+                ]);
+                
+                const participanteId = participanteResult.rows[0].id;
+                
+                // Gerar código único para o teste
+                const codigo = 'TESTE_' + gerarCodigoAleatorio();
+                
+                // Inserir na tabela rotas
+                await pool.query(`
+                    INSERT INTO rotas (codigo, participante_id) 
+                    VALUES ($1, $2)
+                `, [codigo, participanteId]);
+                
+                importados++;
+                logger.info(`Participante de teste criado: ${dadoTeste.nome} - Código: ${codigo}`);
+                
+            } catch (error) {
+                logger.error(`Erro ao criar participante ${dadoTeste.nome}:`, error.message);
+            }
+        }
+        
+        logger.info(`Dados de teste carregados: ${importados} participantes`);
+        
+    } catch (error) {
+        logger.error('Erro ao carregar dados de teste:', error);
     }
 }
 
@@ -143,17 +223,21 @@ app.get('/admin', async (req, res) => {
             FROM rotas r 
             INNER JOIN confirmacoes c ON r.codigo = c.codigo_rota
         `);
+        const participantesImportados = await pool.query('SELECT COUNT(*) as count FROM participantes_importados');
         
         const stats = {
-            totalConfirmacoes: totalConfirmacoes.rows[0].count,
-            webhooksEnviados: webhooksEnviados.rows[0].count,
-            rotasGeradas: rotasGeradas.rows[0].count,
-            rotasUsadas: rotasUsadas.rows[0].count
+            totalConfirmacoes: parseInt(totalConfirmacoes.rows[0].count),
+            webhooksEnviados: parseInt(webhooksEnviados.rows[0].count),
+            rotasGeradas: parseInt(rotasGeradas.rows[0].count),
+            rotasUsadas: parseInt(rotasUsadas.rows[0].count),
+            participantesImportados: parseInt(participantesImportados.rows[0].count)
         };
+        
+        logger.info('Estatísticas carregadas:', stats);
         
         res.render('admin', { stats });
     } catch (err) {
-        console.error('Erro ao buscar estatísticas:', err);
+        logger.error('Erro ao buscar estatísticas:', err);
         res.status(500).send('Erro interno do servidor');
     }
 });
@@ -258,6 +342,31 @@ Aguardamos você! 🚀`;
     }
 });
 
+// Buscar dados do participante pelo código
+app.get('/api/participante/:codigo', async (req, res) => {
+    const codigo = req.params.codigo.toUpperCase();
+    
+    try {
+        // Buscar dados do participante usando INNER JOIN com a tabela rotas
+        const participanteResult = await pool.query(`
+            SELECT p.nome, p.telefone, p.email 
+            FROM participantes_importados p
+            INNER JOIN rotas r ON r.participante_id = p.id
+            WHERE r.codigo = $1
+        `, [codigo]);
+        
+        if (participanteResult.rows.length > 0) {
+            res.json(participanteResult.rows[0]);
+        } else {
+            return res.status(404).json({ error: 'Código não encontrado' });
+        }
+        
+    } catch (err) {
+        console.error('Erro ao buscar participante:', err);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
 // Listar confirmações
 app.get('/api/confirmacoes', async (req, res) => {
     try {
@@ -274,16 +383,59 @@ app.get('/api/confirmacoes', async (req, res) => {
     }
 });
 
-// Enviar mensagens de confirmação para todos os participantes
+// Buscar participantes disponíveis para envio
+app.get('/api/participantes-envio', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                p.id,
+                p.nome,
+                p.telefone,
+                r.codigo,
+                CASE 
+                    WHEN c.id IS NOT NULL THEN true 
+                    ELSE false 
+                END as confirmado
+            FROM participantes_importados p
+            INNER JOIN rotas r ON r.participante_id = p.id
+            LEFT JOIN confirmacoes c ON c.codigo_rota = r.codigo
+            WHERE p.telefone IS NOT NULL AND p.telefone != ''
+            ORDER BY p.nome
+        `);
+        
+        res.json(result.rows);
+    } catch (err) {
+        logger.error('Erro ao buscar participantes para envio:', err);
+        res.status(500).json({ error: 'Erro ao buscar participantes' });
+    }
+});
+
+// Enviar mensagens de confirmação para participantes selecionados
 app.post('/api/enviar-mensagens', async (req, res) => {
     try {
-        const { webhookUrl, baseUrl } = req.body;
+        const { baseUrl, participantesSelecionados } = req.body;
         
-        if (!webhookUrl || !baseUrl) {
-            return res.status(400).json({ error: 'URL do webhook e URL base são obrigatórias' });
+        // Usar a URL do webhook do arquivo .env
+        const webhookUrl = process.env.N8N_WEBHOOK_URL;
+        
+        if (!webhookUrl) {
+            logger.error('N8N_WEBHOOK_URL não configurado no .env');
+            return res.status(500).json({ 
+                success: false, 
+                message: 'Webhook não configurado no arquivo .env' 
+            });
         }
         
-        // Buscar todos os participantes com códigos gerados
+        if (!baseUrl) {
+            return res.status(400).json({ error: 'URL base é obrigatória' });
+        }
+        
+        if (!participantesSelecionados || !Array.isArray(participantesSelecionados) || participantesSelecionados.length === 0) {
+            return res.status(400).json({ error: 'Nenhum participante selecionado' });
+        }
+        
+        // Buscar apenas os participantes selecionados
+        const placeholders = participantesSelecionados.map((_, index) => `$${index + 1}`).join(',');
         const result = await pool.query(`
             SELECT 
                 p.id,
@@ -292,13 +444,19 @@ app.post('/api/enviar-mensagens', async (req, res) => {
                 r.codigo
             FROM participantes_importados p
             INNER JOIN rotas r ON r.participante_id = p.id
-            WHERE p.telefone IS NOT NULL AND p.telefone != ''
+            WHERE p.id IN (${placeholders}) AND p.telefone IS NOT NULL AND p.telefone != ''
             ORDER BY p.nome
-        `);
+        `, participantesSelecionados);
         
         const participantes = result.rows;
+        
+        if (participantes.length === 0) {
+            return res.status(400).json({ error: 'Nenhum participante válido encontrado entre os selecionados' });
+        }
+        
         let enviados = 0;
         let erros = 0;
+        const detalhesEnvio = [];
         
         for (const participante of participantes) {
             try {
@@ -326,9 +484,22 @@ Por favor, confirme sua presença no link: ${urlConfirmacao}`;
                 
                 if (response.ok) {
                     enviados++;
+                    detalhesEnvio.push({
+                        nome: participante.nome,
+                        telefone: participante.telefone,
+                        codigo: participante.codigo,
+                        status: 'enviado'
+                    });
                 } else {
                     console.error(`Erro ao enviar mensagem para ${participante.nome}:`, response.statusText);
                     erros++;
+                    detalhesEnvio.push({
+                        nome: participante.nome,
+                        telefone: participante.telefone,
+                        codigo: participante.codigo,
+                        status: 'erro',
+                        erro: response.statusText
+                    });
                 }
                 
                 // Pequena pausa entre envios para não sobrecarregar
@@ -337,6 +508,13 @@ Por favor, confirme sua presença no link: ${urlConfirmacao}`;
             } catch (err) {
                 console.error(`Erro ao enviar mensagem para ${participante.nome}:`, err);
                 erros++;
+                detalhesEnvio.push({
+                    nome: participante.nome,
+                    telefone: participante.telefone,
+                    codigo: participante.codigo,
+                    status: 'erro',
+                    erro: err.message
+                });
             }
         }
         
@@ -345,7 +523,8 @@ Por favor, confirme sua presença no link: ${urlConfirmacao}`;
             message: `${enviados} mensagens enviadas com sucesso! ${erros} erros.`,
             enviados,
             erros,
-            total: participantes.length
+            total: participantes.length,
+            detalhes: detalhesEnvio
         });
         
     } catch (err) {
@@ -359,50 +538,55 @@ app.post('/api/importar-dados-teste', async (req, res) => {
     try {
         console.log('🧪 Iniciando importação de dados de teste...');
         
-        // Limpar dados de teste existentes
+        // Limpar dados de teste existentes na ordem correta (respeitando foreign keys)
+        await pool.query('DELETE FROM confirmacoes WHERE codigo_rota LIKE \'TESTE_%\'');
         await pool.query('DELETE FROM rotas WHERE codigo LIKE \'TESTE_%\'');
-        await pool.query('DELETE FROM participantes_importados WHERE nome = \'Alexandre\'');
+        await pool.query('DELETE FROM participantes_importados WHERE nome IN (\'Marina\')');
         
         let importados = 0;
         let erros = 0;
         
-        // Dados de teste simples
-        const dadoTeste = {
-            nome: 'Alexandre',
-            telefone: '86981813317',
-            email: 'alexandre@teste.com'
-        };
+        // Dados de teste - removendo duplicação do Alexandre
+        const dadosTeste = [
+            {
+                nome: 'Marina',
+                telefone: '86999503015',
+                email: 'marina@teste.com'
+            }
+        ];
         
-        try {
-            // Inserir participante de teste com estrutura simplificada
-            const participanteResult = await pool.query(`
-                INSERT INTO participantes_importados 
-                (nome, telefone, email) 
-                VALUES ($1, $2, $3)
-                RETURNING id
-            `, [
-                dadoTeste.nome,
-                dadoTeste.telefone,
-                dadoTeste.email
-            ]);
-            
-            const participanteId = participanteResult.rows[0].id;
-            
-            // Gerar código único para o teste
-            const codigo = 'TESTE_' + gerarCodigoAleatorio();
-            
-            // Inserir na tabela rotas
-            await pool.query(`
-                INSERT INTO rotas (codigo, participante_id) 
-                VALUES ($1, $2)
-            `, [codigo, participanteId]);
-            
-            importados++;
-            console.log(`✅ Participante de teste criado: ${dadoTeste.nome} - Código: ${codigo}`);
-            
-        } catch (error) {
-            console.error('Erro ao processar participante de teste:', error);
-            erros++;
+        for (const dadoTeste of dadosTeste) {
+            try {
+                // Inserir participante de teste com estrutura simplificada
+                const participanteResult = await pool.query(`
+                    INSERT INTO participantes_importados 
+                    (nome, telefone, email) 
+                    VALUES ($1, $2, $3)
+                    RETURNING id
+                `, [
+                    dadoTeste.nome,
+                    dadoTeste.telefone,
+                    dadoTeste.email
+                ]);
+                
+                const participanteId = participanteResult.rows[0].id;
+                
+                // Gerar código único para o teste
+                const codigo = 'TESTE_' + gerarCodigoAleatorio();
+                
+                // Inserir na tabela rotas
+                await pool.query(`
+                    INSERT INTO rotas (codigo, participante_id) 
+                    VALUES ($1, $2)
+                `, [codigo, participanteId]);
+                
+                importados++;
+                console.log(`✅ Participante de teste criado: ${dadoTeste.nome} - Código: ${codigo}`);
+                
+            } catch (error) {
+                console.error(`❌ Erro ao criar participante ${dadoTeste.nome}:`, error.message);
+                erros++;
+            }
         }
         
         console.log(`📊 Importação de teste concluída: ${importados} importados, ${erros} erros`);
@@ -411,8 +595,7 @@ app.post('/api/importar-dados-teste', async (req, res) => {
             success: true,
             message: `Dados de teste importados com sucesso!`,
             importados,
-            erros,
-            participante: dadoTeste
+            erros
         });
         
     } catch (error) {
@@ -426,7 +609,7 @@ app.post('/api/importar-dados-teste', async (req, res) => {
 });
 
 // Importar dados do table.json e gerar códigos únicos para cada participante
-app.post('/api/importar-dados', async (req, res) => {
+app.post('/api/admin/importar', async (req, res) => {
     try {
         const fs = require('fs');
         const path = require('path');
@@ -439,9 +622,10 @@ app.post('/api/importar-dados', async (req, res) => {
         
         const data = JSON.parse(fs.readFileSync(tableJsonPath, 'utf8'));
         
-        // Limpar dados existentes
+        // Limpar dados existentes (ordem correta para evitar violação de foreign key)
+        await pool.query('DELETE FROM confirmacoes');
+        await pool.query('DELETE FROM rotas');
         await pool.query('DELETE FROM participantes_importados');
-        await pool.query('DELETE FROM rotas WHERE participante_id IS NOT NULL');
         
         let importados = 0;
         let erros = 0;
