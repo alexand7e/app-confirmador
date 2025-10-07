@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmação de Participação - CapacitIA</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px 30px;
+        }
+
+        .event-info {
+            background: #f8fafc;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border-left: 5px solid #4f46e5;
+        }
+
+        .event-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .event-subtitle {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 25px;
+            font-size: 1.1rem;
+        }
+
+        .event-details {
+            display: grid;
+            gap: 15px;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 10px 0;
+        }
+
+        .detail-icon {
+            background: #4f46e5;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .detail-text {
+            flex: 1;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 2px;
+        }
+
+        .detail-value {
+            color: #64748b;
+            line-height: 1.4;
+        }
+
+        .form-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            border: 2px solid #e2e8f0;
+        }
+
+        .form-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .required {
+            color: #ef4444;
+        }
+
+        .btn-confirm {
+            width: 100%;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+        }
+
+        .btn-confirm:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-decline {
+            width: 100%;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-decline:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3);
+        }
+
+        .buttons-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .btn-confirm:disabled, .btn-decline:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #4f46e5;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .success-message {
+            display: none;
+            text-align: center;
+            padding: 30px;
+            color: #059669;
+        }
+
+        .success-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .header {
+                padding: 30px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .content {
+                padding: 30px 20px;
+            }
+            
+            .event-info, .form-section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-graduation-cap"></i> CapacitIA</h1>
+            <p>Autonomia Digital para Pessoas Idosas</p>
+        </div>
+
+        <div class="content">
+            <div class="event-info">
+                <h2 class="event-title">Treinamento CapacitIA – Autonomia Digital para Pessoas Idosas</h2>
+                <p class="event-subtitle">Promovido pela Secretaria de Inteligência Artificial</p>
+                
+                <div class="event-details">
+                    <div class="detail-item">
+                        <div class="detail-icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <div class="detail-text">
+                            <div class="detail-label">Dias</div>
+                            <div class="detail-value">14 e 16 de outubro de 2025 (terça e quinta)</div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <div class="detail-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="detail-text">
+                            <div class="detail-label">Horário</div>
+                            <div class="detail-value">08h às 12h</div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <div class="detail-icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <div class="detail-text">
+                            <div class="detail-label">Local</div>
+                            <div class="detail-value">
+                                Espaço da Cidadania Digital<br>
+                                R. Clodoaldo Freitas, 729 - Centro (Norte)<br>
+                                Teresina - PI, 64000-360<br>
+                                (próximo ao Lindolfo Monteiro)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3 class="form-title">
+                    <i class="fas fa-user-check"></i> Confirmar Participação
+                </h3>
+                
+                <div class="buttons-container">
+                    <button class="btn-confirm" id="btnConfirm">
+                        <i class="fas fa-check-circle"></i> Confirmar Participação
+                    </button>
+                    
+                    <button class="btn-decline" id="btnDecline">
+                        <i class="fas fa-times-circle"></i> Não Posso Participar
+                    </button>
+                </div>
+                
+                <div class="error-message" id="errorMessage"></div>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Processando sua confirmação...</p>
+            </div>
+
+            <div class="success-message" id="successMessage">
+                <div class="success-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h3>Confirmação Realizada com Sucesso!</h3>
+                <p>Você receberá uma mensagem de confirmação no WhatsApp em breve.</p>
+                <p><strong>Aguardamos você no treinamento!</strong></p>
+            </div>
+
+            <div class="success-message" id="declineMessage">
+                <div class="success-icon" style="color: #ef4444;">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+                <h3>Participação Cancelada</h3>
+                <p>Sua não participação foi registrada.</p>
+                <p><strong>Obrigado pelo retorno!</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Botão de confirmar participação
+        document.getElementById('btnConfirm').addEventListener('click', async function() {
+            await handleConfirmation(true);
+        });
+
+        // Botão de não participar
+        document.getElementById('btnDecline').addEventListener('click', async function() {
+            await handleConfirmation(false);
+        });
+
+        async function handleConfirmation(isConfirming) {
+            // Desabilitar botões
+            document.getElementById('btnConfirm').disabled = true;
+            document.getElementById('btnDecline').disabled = true;
+            
+            // Mostrar loading
+            document.querySelector('.form-section').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+            
+            try {
+                const response = await fetch(`/api/confirmar/<%= codigo %>`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        confirmacao: isConfirming,
+                        nome: 'Participante',
+                        telefone: 'N/A',
+                        email: ''
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Mostrar mensagem apropriada
+                    document.getElementById('loading').style.display = 'none';
+                    if (isConfirming) {
+                        document.getElementById('successMessage').style.display = 'block';
+                    } else {
+                        document.getElementById('declineMessage').style.display = 'block';
+                    }
+                } else {
+                    throw new Error(result.error || 'Erro ao processar confirmação');
+                }
+                
+            } catch (error) {
+                // Mostrar erro e reabilitar botões
+                document.getElementById('loading').style.display = 'none';
+                document.querySelector('.form-section').style.display = 'block';
+                document.getElementById('btnConfirm').disabled = false;
+                document.getElementById('btnDecline').disabled = false;
+                showError('Erro ao processar confirmação: ' + error.message);
+            }
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

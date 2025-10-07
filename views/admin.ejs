@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo - CapacitIA</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border-left: 4px solid #4f46e5;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #4f46e5;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .actions-bar {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #4f46e5;
+            color: white;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .table-header {
+            background: #f8fafc;
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .table-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #f8fafc;
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        tr:hover {
+            background: #f8fafc;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+        }
+
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #4f46e5;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .close {
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #64748b;
+        }
+
+        .close:hover {
+            color: #1e293b;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .success {
+            background: #dcfce7;
+            color: #166534;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #bbf7d0;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #fecaca;
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .actions-bar {
+                flex-direction: column;
+            }
+            
+            .btn {
+                justify-content: center;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            table {
+                font-size: 0.9rem;
+            }
+            
+            th, td {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1><i class="fas fa-cog"></i> Painel Administrativo - CapacitIA</h1>
+            <div>
+                <button class="btn btn-primary" onclick="gerarNovaRota()">
+                    <i class="fas fa-plus"></i> Gerar Nova Rota
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="table-container" style="margin-bottom: 30px;">
+             <div class="table-header">
+                 <h2 class="table-title">
+                     <i class="fas fa-vial"></i> Modo de Teste
+                 </h2>
+             </div>
+             <div style="padding: 20px;">
+                 <p style="margin-bottom: 20px; color: #64748b;">
+                     <strong>🧪 Ambiente de Teste:</strong> Use esta seção para testar o sistema com dados fictícios antes de usar os dados reais.
+                 </p>
+                 
+                 <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                     <p style="margin: 0; color: #92400e;">
+                         <strong>⚠️ Atenção:</strong> Esta função criará apenas um usuário de teste (Alexandre - 86981813317) para validar o fluxo completo.
+                     </p>
+                 </div>
+                 
+                 <button onclick="importarDadosTeste()" class="btn btn-warning" style="background: #f59e0b; border-color: #f59e0b;">
+                     <i class="fas fa-vial"></i> Importar Dados de Teste
+                 </button>
+                 
+                 <div id="resultadoTeste" style="display: none; margin-top: 20px;"></div>
+             </div>
+         </div>
+
+         <div class="table-container" style="margin-bottom: 30px;">
+             <div class="table-header">
+                 <h2 class="table-title">
+                     <i class="fas fa-paper-plane"></i> Enviar Mensagens de Confirmação
+                 </h2>
+             </div>
+             <div style="padding: 20px;">
+                 <p style="margin-bottom: 20px; color: #64748b;">Envie mensagens personalizadas para todos os participantes com seus links únicos de confirmação.</p>
+                 
+                 <div style="margin-bottom: 15px;">
+                     <label style="display: block; margin-bottom: 5px; font-weight: 600;">URL do Webhook n8n:</label>
+                     <input type="url" id="webhookUrl" placeholder="<%= process.env.N8N_WEBHOOK_URL || 'https://seu-n8n.com/webhook/whatsapp' %>" required style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                 </div>
+                 
+                 <div style="margin-bottom: 20px;">
+                     <label style="display: block; margin-bottom: 5px; font-weight: 600;">URL Base da Aplicação:</label>
+                     <input type="url" id="baseUrl" placeholder="<%= process.env.APP_BASE_URL || 'https://seu-dominio.com' %>" value="<%= process.env.APP_BASE_URL || 'http://localhost:3000' %>" required style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                 </div>
+                 
+                 <button onclick="enviarMensagens()" class="btn btn-primary">
+                     <i class="fas fa-paper-plane"></i> Enviar Mensagens para Todos
+                 </button>
+                 
+                 <div id="resultadoEnvio" style="display: none; margin-top: 20px;"></div>
+             </div>
+         </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalConfirmacoes">-</div>
+                <div class="stat-label">Total de Confirmações</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="webhooksEnviados">-</div>
+                <div class="stat-label">WhatsApp Enviados</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="webhooksPendentes">-</div>
+                <div class="stat-label">WhatsApp Pendentes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="rotasGeradas">-</div>
+                <div class="stat-label">Rotas Geradas</div>
+            </div>
+        </div>
+
+        <div class="actions-bar">
+            <button class="btn btn-success" onclick="carregarConfirmacoes()">
+                <i class="fas fa-sync-alt"></i> Atualizar Dados
+            </button>
+            <button class="btn btn-warning" onclick="importarDados()">
+                <i class="fas fa-upload"></i> Importar table.json
+            </button>
+            <button class="btn btn-primary" onclick="exportarDados()">
+                <i class="fas fa-download"></i> Exportar Dados
+            </button>
+        </div>
+
+        <div class="table-container">
+            <div class="table-header">
+                <h2 class="table-title">
+                    <i class="fas fa-users"></i> Confirmações Recebidas
+                </h2>
+            </div>
+            <div class="table-wrapper">
+                <div id="loading" class="loading">
+                    <div class="spinner"></div>
+                    <p>Carregando dados...</p>
+                </div>
+                <table id="confirmTable" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Telefone</th>
+                            <th>E-mail</th>
+                            <th>Código</th>
+                            <th>Data/Hora</th>
+                            <th>WhatsApp</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="confirmTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para nova rota -->
+    <div id="rotaModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Nova Rota Gerada</h3>
+                <span class="close" onclick="fecharModal('rotaModal')">&times;</span>
+            </div>
+            <div id="rotaContent">
+                <!-- Conteúdo será inserido via JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para importação -->
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Importar Dados</h3>
+                <span class="close" onclick="fecharModal('importModal')">&times;</span>
+            </div>
+            <div id="importContent">
+                <p>Deseja importar os dados do arquivo table.json?</p>
+                <div style="margin-top: 20px; display: flex; gap: 10px;">
+                    <button class="btn btn-success" onclick="confirmarImportacao()">
+                        <i class="fas fa-check"></i> Confirmar
+                    </button>
+                    <button class="btn btn-danger" onclick="fecharModal('importModal')">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Carregar dados ao inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarConfirmacoes();
+        });
+
+        async function carregarConfirmacoes() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('confirmTable').style.display = 'none';
+
+            try {
+                const response = await fetch('/api/confirmacoes');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const confirmacoes = await response.json();
+                
+                // Verificar se confirmacoes é um array
+                if (!Array.isArray(confirmacoes)) {
+                    console.error('Resposta da API não é um array:', confirmacoes);
+                    throw new Error('Dados inválidos recebidos da API');
+                }
+
+                atualizarEstatisticas(confirmacoes);
+                preencherTabela(confirmacoes);
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('confirmTable').style.display = 'table';
+
+            } catch (error) {
+                console.error('Erro ao carregar confirmações:', error);
+                document.getElementById('loading').innerHTML = 
+                    '<p style="color: #ef4444;">Erro ao carregar dados: ' + error.message + '</p>';
+            }
+        }
+
+        function atualizarEstatisticas(confirmacoes) {
+            // Verificar se confirmacoes é um array válido
+            if (!Array.isArray(confirmacoes)) {
+                console.error('atualizarEstatisticas: confirmacoes não é um array', confirmacoes);
+                return;
+            }
+            
+            const total = confirmacoes.length;
+            const enviados = confirmacoes.filter(c => c.webhook_enviado).length;
+            const pendentes = total - enviados;
+
+            document.getElementById('totalConfirmacoes').textContent = total;
+            document.getElementById('webhooksEnviados').textContent = enviados;
+            document.getElementById('webhooksPendentes').textContent = pendentes;
+            document.getElementById('rotasGeradas').textContent = '...'; // Seria necessário outra consulta
+        }
+
+        function preencherTabela(confirmacoes) {
+            const tbody = document.getElementById('confirmTableBody');
+            tbody.innerHTML = '';
+
+            // Verificar se confirmacoes é um array válido
+            if (!Array.isArray(confirmacoes)) {
+                console.error('preencherTabela: confirmacoes não é um array', confirmacoes);
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #ef4444;">Erro: dados inválidos</td></tr>';
+                return;
+            }
+
+            if (confirmacoes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #64748b;">Nenhuma confirmação encontrada</td></tr>';
+                return;
+            }
+
+            confirmacoes.forEach(confirmacao => {
+                const row = document.createElement('tr');
+                
+                const statusBadge = confirmacao.webhook_enviado 
+                    ? '<span class="status-badge status-success">Enviado</span>'
+                    : '<span class="status-badge status-warning">Pendente</span>';
+
+                const dataFormatada = new Date(confirmacao.confirmado_em).toLocaleString('pt-BR');
+
+                row.innerHTML = `
+                    <td><strong>${confirmacao.nome}</strong></td>
+                    <td>${confirmacao.telefone}</td>
+                    <td>${confirmacao.email || '-'}</td>
+                    <td><code>${confirmacao.codigo_rota}</code></td>
+                    <td>${dataFormatada}</td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        ${!confirmacao.webhook_enviado ? 
+                            `<button class="btn btn-success btn-small" onclick="reenviarWebhook(${confirmacao.id})">
+                                <i class="fas fa-paper-plane"></i> Enviar
+                            </button>` : 
+                            `<button class="btn btn-primary btn-small" onclick="reenviarWebhook(${confirmacao.id})">
+                                <i class="fas fa-redo"></i> Reenviar
+                            </button>`
+                        }
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        async function gerarNovaRota() {
+            try {
+                const response = await fetch('/api/gerar-rota', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.codigo) {
+                    document.getElementById('rotaContent').innerHTML = `
+                        <div class="alert alert-success">
+                            <strong>Rota gerada com sucesso!</strong>
+                        </div>
+                        <p><strong>Código:</strong> <code>${result.codigo}</code></p>
+                        <p><strong>URL:</strong></p>
+                        <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                            <code>${result.url}</code>
+                        </div>
+                        <button class="btn btn-primary" onclick="copiarUrl('${result.url}')">
+                            <i class="fas fa-copy"></i> Copiar URL
+                        </button>
+                    `;
+                    
+                    document.getElementById('rotaModal').style.display = 'block';
+                }
+
+            } catch (error) {
+                alert('Erro ao gerar rota: ' + error.message);
+            }
+        }
+
+        function copiarUrl(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                alert('URL copiada para a área de transferência!');
+            });
+        }
+
+        async function reenviarWebhook(confirmacaoId) {
+            if (!confirm('Deseja reenviar a mensagem do WhatsApp?')) return;
+
+            try {
+                const response = await fetch(`/api/admin/reenviar-webhook/${confirmacaoId}`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Webhook reenviado com sucesso!');
+                    carregarConfirmacoes(); // Recarregar dados
+                } else {
+                    alert('Erro ao reenviar webhook: ' + result.error);
+                }
+
+            } catch (error) {
+                alert('Erro ao reenviar webhook: ' + error.message);
+            }
+        }
+
+        // Função para importar dados de teste
+         async function importarDadosTeste() {
+             const resultadoDiv = document.getElementById('resultadoTeste');
+             
+             try {
+                 resultadoDiv.style.display = 'block';
+                 resultadoDiv.innerHTML = '<div class="loading">🧪 Importando dados de teste...</div>';
+                 
+                 const response = await fetch('/api/importar-dados-teste', {
+                     method: 'POST',
+                     headers: {
+                         'Content-Type': 'application/json',
+                     }
+                 });
+                 
+                 const data = await response.json();
+                 
+                 if (data.success) {
+                     resultadoDiv.innerHTML = `
+                         <div class="success">
+                             ✅ ${data.message}<br>
+                             📊 Importados: ${data.importados} | Erros: ${data.erros}
+                         </div>
+                     `;
+                     // Recarregar estatísticas
+                     setTimeout(() => {
+                         location.reload();
+                     }, 2000);
+                 } else {
+                     resultadoDiv.innerHTML = `<div class="error">❌ ${data.error}</div>`;
+                 }
+                 
+             } catch (error) {
+                 console.error('Erro ao importar dados de teste:', error);
+                 resultadoDiv.innerHTML = '<div class="error">❌ Erro ao importar dados de teste</div>';
+             }
+         }
+
+         // Função para enviar mensagens de confirmação
+        async function enviarMensagens() {
+            const webhookUrl = document.getElementById('webhookUrl').value;
+            const baseUrl = document.getElementById('baseUrl').value;
+            const resultadoDiv = document.getElementById('resultadoEnvio');
+            
+            if (!webhookUrl || !baseUrl) {
+                alert('Por favor, preencha a URL do webhook e a URL base.');
+                return;
+            }
+            
+            try {
+                resultadoDiv.style.display = 'block';
+                resultadoDiv.innerHTML = '<div class="loading">📤 Enviando mensagens...</div>';
+                
+                const response = await fetch('/api/enviar-mensagens', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        webhookUrl: webhookUrl,
+                        baseUrl: baseUrl
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultadoDiv.innerHTML = `
+                        <div class="success">
+                            ✅ ${data.message}<br>
+                            📊 Total: ${data.total} | Enviados: ${data.enviados} | Erros: ${data.erros}
+                        </div>
+                    `;
+                } else {
+                    resultadoDiv.innerHTML = `<div class="error">❌ ${data.error}</div>`;
+                }
+                
+            } catch (error) {
+                console.error('Erro ao enviar mensagens:', error);
+                resultadoDiv.innerHTML = '<div class="error">❌ Erro ao enviar mensagens</div>';
+            }
+        }
+
+        function importarDados() {
+            document.getElementById('importModal').style.display = 'block';
+        }
+
+        async function confirmarImportacao() {
+            try {
+                const response = await fetch('/api/admin/importar', {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.message);
+                    fecharModal('importModal');
+                } else {
+                    alert('Erro na importação: ' + result.error);
+                }
+
+            } catch (error) {
+                alert('Erro na importação: ' + error.message);
+            }
+        }
+
+        function exportarDados() {
+            // Implementar exportação se necessário
+            alert('Funcionalidade de exportação em desenvolvimento');
+        }
+
+        function fecharModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Fechar modal clicando fora
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
