@@ -232,14 +232,18 @@ app.post('/api/confirmar/:codigo', async (req, res) => {
                 // Enviar segunda mensagem de confirmação
                 const mensagemConfirmacao = `Olá, ${nome}! 🎉
 
-Sua participação no treinamento CapacitIA foi confirmada com sucesso!
+Que alegria ter você conosco! 💛
+Sua participação no *treinamento CapacitIA – Autonomia Digital* para Pessoas Idosas foi confirmada com sucesso! 🙌
 
-📍 Endereço: R. Clodoaldo Freitas, 729 - Centro (Norte), Teresina - PI, 64000-360 (próx. ao Lindolfo Monteiro)
+📍 Local: R. Clodoaldo Freitas, 729 – Centro (Norte), Teresina-PI
+(próx. ao Estádio Lindolfo Monteiro)
 
 📅 Dias: 14 e 16 de outubro de 2025 (terça e quinta)
 🕗 Horário: 08h às 12h
 
-Aguardamos você! 😊 Certo!`;
+O curso será *leve, acolhedor e com muita prática, pra você aprender de forma simples, divertida e no seu ritmo!* 💻✨
+
+Estamos muito felizes em receber você! 😊`;
 
                 logger.debug(`Enviando segunda mensagem de confirmação`);
                 const segundaResponse = await axios.post(webhookUrl, {
