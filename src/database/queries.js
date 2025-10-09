@@ -151,6 +151,7 @@ const participantesQueries = {
                 p.id,
                 p.nome,
                 p.telefone,
+                p.projeto_extensao,
                 r.codigo,
                 CASE 
                     WHEN c.id IS NOT NULL THEN true 
@@ -163,6 +164,29 @@ const participantesQueries = {
             ORDER BY p.nome
         `;
         return await pool.query(query);
+    },
+
+    // Listar participantes para envio filtrados por projeto
+    listForSendingByProject: async (projetoExtensao) => {
+        const query = `
+            SELECT 
+                p.id,
+                p.nome,
+                p.telefone,
+                p.projeto_extensao,
+                r.codigo,
+                CASE 
+                    WHEN c.id IS NOT NULL THEN true 
+                    ELSE false 
+                END as confirmado
+            FROM participantes_importados p
+            INNER JOIN rotas r ON r.participante_id = p.id
+            LEFT JOIN confirmacoes c ON c.codigo_rota = r.codigo
+            WHERE p.telefone IS NOT NULL AND p.telefone != '' 
+            AND p.projeto_extensao = $1
+            ORDER BY p.nome
+        `;
+        return await pool.query(query, [projetoExtensao]);
     },
 
     // Buscar participantes selecionados

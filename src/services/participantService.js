@@ -61,6 +61,12 @@ class ParticipantService {
         return result.rows;
     }
 
+    // Buscar participantes para envio filtrados por projeto
+    static async getParticipantsForSendingByProject(projetoExtensao) {
+        const result = await participantesQueries.listForSendingByProject(projetoExtensao);
+        return result.rows;
+    }
+
     // Buscar participantes selecionados
     static async getSelectedParticipants(participanteIds) {
         if (!participanteIds || participanteIds.length === 0) {

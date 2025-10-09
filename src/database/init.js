@@ -19,7 +19,7 @@ const createTablesQueries = {
             id SERIAL PRIMARY KEY,
             codigo_rota VARCHAR(255) NOT NULL,
             nome VARCHAR(255) NOT NULL,
-            telefone VARCHAR(20) NOT NULL,
+            telefone VARCHAR(15) NOT NULL,
             email VARCHAR(255),
             confirmado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             webhook_enviado BOOLEAN DEFAULT FALSE
@@ -38,7 +38,7 @@ const createTablesQueries = {
             cidade VARCHAR(100),
             bairro VARCHAR(100),
             aposentado VARCHAR(10),
-            telefone VARCHAR(20),
+            telefone VARCHAR(15),
             email VARCHAR(255),
             projeto_extensao VARCHAR(255),
             outro_projeto VARCHAR(255),
@@ -48,23 +48,57 @@ const createTablesQueries = {
     `
 };
 
-// Dados de teste para Alexandre
-const dadosTeste = [{
-    carimbo_data_hora: new Date(),
-    nome: 'Alexandre',
-    genero: 'Masculino',
-    idade: 35,
-    cpf: '123.456.789-00',
-    cidade: 'Teresina',
-    bairro: 'Centro',
-    aposentado: 'Não',
-    telefone: '86981813317',
-    email: 'alexandre@teste.com',
-    projeto_extensao: 'Projeto de Extensão Digital',
-    outro_projeto: 'Não',
-    autorizacao_dados: 'Sim',
-    dificuldades: 'Nenhuma dificuldade específica relatada'
-}];
+// Dados de teste para Alexandre, João e Karol
+const dadosTeste = [
+    {
+        carimbo_data_hora: new Date(),
+        nome: 'Alexandre',
+        genero: 'Masculino',
+        idade: 35,
+        cpf: '123.456.789-00',
+        cidade: 'Teresina',
+        bairro: 'Centro',
+        aposentado: 'Não',
+        telefone: '86981813317',
+        email: 'alexandre@teste.com',
+        projeto_extensao: 'Projeto Digital',
+        outro_projeto: 'Não',
+        autorizacao_dados: 'Sim',
+        dificuldades: 'Nenhuma dificuldade específica relatada'
+    },
+    {
+        carimbo_data_hora: new Date(),
+        nome: 'João',
+        genero: 'Masculino',
+        idade: 28,
+        cpf: '987.654.321-00',
+        cidade: 'Teresina',
+        bairro: 'Dirceu',
+        aposentado: 'Não',
+        telefone: '86999852058',
+        email: 'joao@teste.com',
+        projeto_extensao: 'Projeto Educação',
+        outro_projeto: 'Não',
+        autorizacao_dados: 'Sim',
+        dificuldades: 'Nenhuma dificuldade específica relatada'
+    },
+    {
+        carimbo_data_hora: new Date(),
+        nome: 'Karol',
+        genero: 'Feminino',
+        idade: 32,
+        cpf: '456.789.123-00',
+        cidade: 'Teresina',
+        bairro: 'Fátima',
+        aposentado: 'Não',
+        telefone: '86988255887',
+        email: 'karol@teste.com',
+        projeto_extensao: 'Projeto Saúde',
+        outro_projeto: 'Não',
+        autorizacao_dados: 'Sim',
+        dificuldades: 'Nenhuma dificuldade específica relatada'
+    }
+];
 
 // Função para inicializar o banco de dados
 const initializeDatabase = async () => {
@@ -97,14 +131,16 @@ const carregarDadosTeste = async () => {
         console.log('📊 Carregando dados de teste...');
         
         // Verificar se já existem dados de teste
-        const existingTest = await pool.query('SELECT id FROM participantes_importados WHERE nome = $1', ['Alexandre']);
+        const existingTest = await pool.query('SELECT id FROM participantes_importados WHERE nome IN ($1, $2, $3)', ['Alexandre', 'João', 'Karol']);
         
         if (existingTest.rows.length > 0) {
             console.log('ℹ️  Dados de teste já existem, pulando inserção');
             return;
         }
 
-        // Inserir dados de teste do Alexandre
+        const codigosTeste = [];
+
+        // Inserir dados de teste para cada participante
         const insertQuery = `
             INSERT INTO participantes_importados 
             (carimbo_data_hora, nome, genero, idade, cpf, cidade, bairro, aposentado, telefone, email, projeto_extensao, outro_projeto, autorizacao_dados, dificuldades) 
@@ -112,34 +148,43 @@ const carregarDadosTeste = async () => {
             RETURNING id
         `;
         
-        const participante = dadosTeste[0];
-        const result = await pool.query(insertQuery, [
-            participante.carimbo_data_hora,
-            participante.nome,
-            participante.genero,
-            participante.idade,
-            participante.cpf,
-            participante.cidade,
-            participante.bairro,
-            participante.aposentado,
-            participante.telefone,
-            participante.email,
-            participante.projeto_extensao,
-            participante.outro_projeto,
-            participante.autorizacao_dados,
-            participante.dificuldades
-        ]);
+        for (const participante of dadosTeste) {
+            const result = await pool.query(insertQuery, [
+                participante.carimbo_data_hora,
+                participante.nome,
+                participante.genero,
+                participante.idade,
+                participante.cpf,
+                participante.cidade,
+                participante.bairro,
+                participante.aposentado,
+                participante.telefone,
+                participante.email,
+                participante.projeto_extensao,
+                participante.outro_projeto,
+                participante.autorizacao_dados,
+                participante.dificuldades
+            ]);
 
-        const participanteId = result.rows[0].id;
+            const participanteId = result.rows[0].id;
 
-        // Gerar código de teste único
-        const codigoTeste = `TESTE_${Date.now()}`;
+            // Gerar código de teste único para cada participante
+            const codigoTeste = `TESTE_${participante.nome.toUpperCase()}_${Date.now()}`;
+            
+            // Inserir rota de teste
+            await pool.query('INSERT INTO rotas (codigo, participante_id) VALUES ($1, $2)', [codigoTeste, participanteId]);
+            
+            codigosTeste.push({
+                nome: participante.nome,
+                telefone: participante.telefone,
+                codigo: codigoTeste
+            });
+
+            console.log(`✅ Participante ${participante.nome} carregado com código: ${codigoTeste}`);
+        }
         
-        // Inserir rota de teste
-        await pool.query('INSERT INTO rotas (codigo, participante_id) VALUES ($1, $2)', [codigoTeste, participanteId]);
-        
-        console.log(`✅ Dados de teste carregados com sucesso! Código de teste: ${codigoTeste}`);
-        return codigoTeste;
+        console.log(`✅ Todos os dados de teste carregados com sucesso! ${codigosTeste.length} participantes criados.`);
+        return codigosTeste;
     } catch (error) {
         console.error('❌ Erro ao carregar dados de teste:', error);
         throw error;
@@ -158,7 +203,7 @@ const limparDadosTeste = async () => {
         await pool.query('DELETE FROM rotas WHERE codigo LIKE \'TESTE_%\'');
         
         // Deletar participantes de teste
-        await pool.query('DELETE FROM participantes_importados WHERE nome IN ($1)', ['Alexandre']);
+        await pool.query('DELETE FROM participantes_importados WHERE nome IN ($1, $2, $3)', ['Alexandre', 'João', 'Karol']);
         
         console.log('✅ Dados de teste limpos com sucesso!');
     } catch (error) {
@@ -167,9 +212,31 @@ const limparDadosTeste = async () => {
     }
 };
 
+const resetarBancoDados = async () => {
+    try {
+        console.log('🔄 Resetando banco de dados...');
+        
+        // Fazer DROP das tabelas na ordem correta (devido às foreign keys)
+        await pool.query('DROP TABLE IF EXISTS confirmacoes CASCADE');
+        console.log('✅ Tabela confirmacoes removida');
+        
+        await pool.query('DROP TABLE IF EXISTS rotas CASCADE');
+        console.log('✅ Tabela rotas removida');
+        
+        await pool.query('DROP TABLE IF EXISTS participantes_importados CASCADE');
+        console.log('✅ Tabela participantes_importados removida');
+        
+        console.log('🎉 Banco de dados resetado com sucesso!');
+    } catch (error) {
+        console.error('❌ Erro ao resetar banco de dados:', error);
+        throw error;
+    }
+};
+
 module.exports = {
     initializeDatabase,
     carregarDadosTeste,
     limparDadosTeste,
+    resetarBancoDados,
     dadosTeste
 };

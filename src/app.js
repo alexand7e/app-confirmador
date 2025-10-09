@@ -317,9 +317,18 @@ app.get('/api/confirmacoes', requireAuth, async (req, res) => {
 });
 
 // Listar participantes para envio
+// Listar participantes para envio
 app.get('/api/participantes-envio', requireAuth, async (req, res) => {
     try {
-        const participantes = await ParticipantService.getParticipantsForSending();
+        const { projeto } = req.query;
+        
+        let participantes;
+        if (projeto && projeto !== '') {
+            participantes = await ParticipantService.getParticipantsForSendingByProject(projeto);
+        } else {
+            participantes = await ParticipantService.getParticipantsForSending();
+        }
+        
         res.json({ 
             success: true, 
             participantes 
@@ -373,7 +382,9 @@ Gostaríamos de confirmar sua participação no treinamento CapacitIA – Autono
 🕗 Horário: 08h às 12h
 📍 Local: Espaço da Cidadania Digital
 
-Por favor, confirme sua presença no link: ${baseUrl}/${participante.codigo}`;
+Por favor, confirme sua presença no link: ${baseUrl}/${participante.codigo}
+
+*Para ter acesso ao Link e confirmar sua inscrição, envie um "Oi" aqui no Whatsapp*`;
                 
                 if (webhookUrl) {
                     logger.info(`Enviando requisição para webhook: ${webhookUrl}`);
@@ -441,10 +452,13 @@ Por favor, confirme sua presença no link: ${baseUrl}/${participante.codigo}`;
 // Endpoint para importar dados de teste
 app.post('/api/importar-dados-teste', async (req, res) => {
     try {
-        const { limparDadosTeste } = require('./database/init');
+        const { resetarBancoDados, initializeDatabase, carregarDadosTeste } = require('./database/init');
         
-        // Limpar dados de teste existentes
-        await limparDadosTeste();
+        // Resetar banco de dados completamente
+        await resetarBancoDados();
+        
+        // Recriar tabelas
+        await initializeDatabase();
         
         // Carregar novos dados de teste
         const codigoTeste = await carregarDadosTeste();
@@ -452,7 +466,7 @@ app.post('/api/importar-dados-teste', async (req, res) => {
         logger.info('Dados de teste importados com sucesso');
         res.json({ 
             success: true, 
-            message: 'Dados de teste importados com sucesso!',
+            message: 'Banco resetado e dados de teste importados com sucesso!',
             codigoTeste 
         });
     } catch (error) {
