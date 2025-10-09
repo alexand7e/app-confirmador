@@ -648,9 +648,39 @@ process.on('SIGTERM', () => {
     process.exit(0);
 });
 
+// Handler para Vercel (Serverless Functions)
+let isInitialized = false;
+
+const handler = async (req, res) => {
+    try {
+        // Inicializar apenas uma vez
+        if (!isInitialized) {
+            await initializeApp();
+            isInitialized = true;
+        }
+        
+        // Processar a requisição
+        return app(req, res);
+    } catch (error) {
+        logger.error('❌ Erro no handler:', error);
+        return res.status(500).json({ 
+            error: 'Erro interno do servidor',
+            message: error.message 
+        });
+    }
+};
+
 // Iniciar servidor apenas se este arquivo for executado diretamente
 if (require.main === module) {
     startServer();
 }
 
-module.exports = { app, initializeApp, logger, PORT };
+// Export para Vercel (default export)
+module.exports = handler;
+module.exports.default = handler;
+
+// Export nomeado para compatibilidade
+module.exports.app = app;
+module.exports.initializeApp = initializeApp;
+module.exports.logger = logger;
+module.exports.PORT = PORT;
