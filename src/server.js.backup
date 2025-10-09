@@ -1,0 +1,44 @@
+const { app, initializeApp, logger, PORT } = require('./app');
+
+// Função principal para iniciar o servidor
+const startServer = async () => {
+    try {
+        // Inicializar aplicação (banco de dados, dados de teste, etc.)
+        await initializeApp();
+        
+        // Iniciar servidor
+        app.listen(PORT, () => {
+            logger.info(`🚀 Servidor rodando na porta ${PORT}`);
+            logger.info(`🌐 Acesse: http://localhost:${PORT}`);
+            logger.info(`👨‍💼 Admin: http://localhost:${PORT}/admin`);
+        });
+    } catch (error) {
+        logger.error('❌ Falha ao iniciar servidor:', error);
+        process.exit(1);
+    }
+};
+
+// Tratamento de erros não capturados
+process.on('uncaughtException', (error) => {
+    logger.error('❌ Erro não capturado:', error);
+    process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    logger.error('❌ Promise rejeitada não tratada:', reason);
+    process.exit(1);
+});
+
+// Tratamento de sinais de encerramento
+process.on('SIGINT', () => {
+    logger.info('🛑 Recebido SIGINT. Encerrando servidor...');
+    process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+    logger.info('🛑 Recebido SIGTERM. Encerrando servidor...');
+    process.exit(0);
+});
+
+// Iniciar servidor
+startServer();
