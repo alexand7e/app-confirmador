@@ -374,17 +374,20 @@ app.post('/api/enviar-mensagens', requireAuth, async (req, res) => {
         
         for (const participante of participantesData) {
             try {
-                const mensagem = `Olá, ${participante.nome}! Tudo bem? 😄
+                const mensagem = `Olá, *${participante.nome}*! Tudo bem? 😄
 
-Gostaríamos de confirmar sua participação no treinamento CapacitIA – Autonomia Digital para Pessoas Idosas, promovido pela Secretaria de Inteligência Artificial.
+Você foi convidada(o) para o treinamento CapacitIA – Autonomia Digital para Pessoas Idosas , promovido pela Secretaria de Inteligência Artificial do Piauí .
 
-📅 Dias: 14 e 16 de outubro de 2025 (terça e quinta)
-🕗 Horário: 08h às 12h
-📍 Local: Espaço da Cidadania Digital
+📅 14 e 16 de outubro (terça e quinta)
+🕗 08h às 12h
+📍 Espaço da Cidadania Digital (próx. ao Estádio Lindolfo Monteiro)
 
-Por favor, confirme sua presença no link: ${baseUrl}/${participante.codigo}
+Para confirmar sua presença, clique no link abaixo 👇
+🔗 ${baseUrl}/${participante.codigo}
 
-*Para ter acesso ao Link e confirmar sua inscrição, envie um "Oi" aqui no Whatsapp*`;
+*Para ter acesso ao Link e confirmar sua inscrição, envie um "Oi" aqui no Whatsapp.*
+
+💻 Será um momento *leve, acolhedor e cheio de prática* — pra todo mundo aprender de forma simples e divertida!`;
                 
                 if (webhookUrl) {
                     logger.info(`Enviando requisição para webhook: ${webhookUrl}`);

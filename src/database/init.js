@@ -97,6 +97,22 @@ const dadosTeste = [
         outro_projeto: 'Não',
         autorizacao_dados: 'Sim',
         dificuldades: 'Nenhuma dificuldade específica relatada'
+    },
+    {
+        carimbo_data_hora: new Date(),
+        nome: 'Gratty',
+        genero: 'Feminino',
+        idade: 29,
+        cpf: '321.654.987-00',
+        cidade: 'Teresina',
+        bairro: 'Mocambinho',
+        aposentado: 'Não',
+        telefone: '86999602422',
+        email: 'gratty@teste.com',
+        projeto_extensao: 'Projeto Digital',
+        outro_projeto: 'Não',
+        autorizacao_dados: 'Sim',
+        dificuldades: 'Nenhuma dificuldade específica relatada'
     }
 ];
 
