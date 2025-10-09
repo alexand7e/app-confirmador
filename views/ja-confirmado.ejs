@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Participação Já Confirmada - CapacitIA</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            max-width: 500px;
+            width: 100%;
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .check-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-10px);
+            }
+            60% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .message {
+            font-size: 1.2rem;
+            color: #374151;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .info-box {
+            background: #f0f9ff;
+            border: 2px solid #0ea5e9;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 30px 0;
+            text-align: left;
+        }
+
+        .info-box h3 {
+            color: #0c4a6e;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            color: #1e293b;
+            font-size: 1rem;
+        }
+
+        .info-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-item i {
+            color: #0ea5e9;
+            width: 20px;
+            text-align: center;
+        }
+
+        .btn-home {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-home:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .footer {
+            background: #f8fafc;
+            padding: 20px 30px;
+            text-align: center;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .header {
+                padding: 30px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.6rem;
+            }
+            
+            .content {
+                padding: 30px 20px;
+            }
+            
+            .check-icon {
+                font-size: 3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <div class="check-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h1>Participação Já Confirmada!</h1>
+                <p>Sua confirmação foi registrada anteriormente</p>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="message">
+                <strong>Olá!</strong> Sua participação no treinamento <strong>CapacitIA – Autonomia Digital para Pessoas Idosas</strong> já foi confirmada anteriormente.
+            </div>
+
+            <div class="info-box">
+                <h3>
+                    <i class="fas fa-info-circle"></i>
+                    Informações do Treinamento
+                </h3>
+                
+                <div class="info-item">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span><strong>Local:</strong> Espaço da Cidadania Digital</span>
+                </div>
+                
+                <div class="info-item">
+                    <i class="fas fa-road"></i>
+                    <span><strong>Endereço:</strong> R. Clodoaldo Freitas, 729 - Centro (Norte), Teresina - PI, 64000-360 (próx. ao Lindolfo Monteiro)</span>
+                </div>
+                
+                <div class="info-item">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span><strong>Dias:</strong> 14 e 16 de outubro de 2025 (terça e quinta)</span>
+                </div>
+                
+                <div class="info-item">
+                    <i class="fas fa-clock"></i>
+                    <span><strong>Horário:</strong> 08h às 12h</span>
+                </div>
+            </div>
+
+            <p style="color: #16a34a; font-weight: 600; font-size: 1.1rem;">
+                <i class="fas fa-heart" style="color: #ef4444;"></i>
+                Aguardamos você no treinamento!
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>
+                <i class="fas fa-phone"></i> 
+                Em caso de dúvidas, entre em contato conosco
+            </p>
+            <p style="margin-top: 5px;">
+                <strong>Código:</strong> <%= codigo %>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

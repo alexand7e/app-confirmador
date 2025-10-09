@@ -396,7 +396,10 @@
                 let participanteData = { nome: 'Participante', telefone: 'N/A', email: '' };
                 
                 if (participanteResponse.ok) {
-                    participanteData = await participanteResponse.json();
+                    const responseData = await participanteResponse.json();
+                    if (responseData.success && responseData.participante) {
+                        participanteData = responseData.participante;
+                    }
                 }
 
                 const response = await fetch(`/api/confirmar/<%= codigo %>`, {

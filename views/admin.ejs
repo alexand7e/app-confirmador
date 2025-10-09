@@ -39,6 +39,32 @@
             font-weight: 700;
         }
 
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -329,40 +355,18 @@
     <div class="header">
         <div class="header-content">
             <h1><i class="fas fa-cog"></i> Painel Administrativo - CapacitIA</h1>
-            <div>
+            <div class="header-actions">
                 <button class="btn btn-primary" onclick="gerarNovaRota()">
                     <i class="fas fa-plus"></i> Gerar Nova Rota
+                </button>
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Sair
                 </button>
             </div>
         </div>
     </div>
 
     <div class="container">
-        <div class="table-container" style="margin-bottom: 30px;">
-             <div class="table-header">
-                 <h2 class="table-title">
-                     <i class="fas fa-vial"></i> Modo de Teste
-                 </h2>
-             </div>
-             <div style="padding: 20px;">
-                 <p style="margin-bottom: 20px; color: #64748b;">
-                     <strong>🧪 Ambiente de Teste:</strong> Use esta seção para testar o sistema com dados fictícios antes de usar os dados reais.
-                 </p>
-                 
-                 <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
-                     <p style="margin: 0; color: #92400e;">
-                         <strong>⚠️ Atenção:</strong> Esta função criará apenas um usuário de teste (Alexandre - 86981813317) para validar o fluxo completo.
-                     </p>
-                 </div>
-                 
-                 <button onclick="importarDadosTeste()" class="btn btn-warning" style="background: #f59e0b; border-color: #f59e0b;">
-                     <i class="fas fa-vial"></i> Importar Dados de Teste
-                 </button>
-                 
-                 <div id="resultadoTeste" style="display: none; margin-top: 20px;"></div>
-             </div>
-         </div>
-
          <div class="table-container" style="margin-bottom: 30px;">
             <div class="table-header">
                 <h2 class="table-title">
@@ -465,6 +469,9 @@
             <button class="btn btn-warning" onclick="importarDados()">
                 <i class="fas fa-upload"></i> Importar table.json
             </button>
+            <button class="btn btn-info" onclick="importarDadosReais()">
+                <i class="fas fa-database"></i> Importar Dados Reais
+            </button>
             <button class="btn btn-primary" onclick="exportarDados()">
                 <i class="fas fa-download"></i> Exportar Dados
             </button>
@@ -548,21 +555,33 @@
             try {
                 // Carregar confirmações e estatísticas em paralelo
                 const [confirmResponse, statsResponse] = await Promise.all([
-                    fetch('/api/confirmacoes'),
-                    fetch('/api/admin/stats')
+                    fetch('/api/confirmacoes', {
+                        credentials: 'include',
+                        headers: {
+                            'Authorization': 'Basic ' + btoa('admin:' + '<%= process.env.ADMIN_PASSWORD || "admin123" %>')
+                        }
+                    }),
+                    fetch('/api/admin/stats', {
+                        credentials: 'include',
+                        headers: {
+                            'Authorization': 'Basic ' + btoa('admin:' + '<%= process.env.ADMIN_PASSWORD || "admin123" %>')
+                        }
+                    })
                 ]);
                 
                 if (!confirmResponse.ok) {
                     throw new Error(`HTTP error! status: ${confirmResponse.status}`);
                 }
                 
-                const confirmacoes = await confirmResponse.json();
+                const responseData = await confirmResponse.json();
                 
-                // Verificar se confirmacoes é um array
-                if (!Array.isArray(confirmacoes)) {
-                    console.error('Resposta da API não é um array:', confirmacoes);
+                // Verificar se a resposta tem a estrutura esperada
+                if (!responseData.success || !Array.isArray(responseData.confirmacoes)) {
+                    console.error('Resposta da API inválida:', responseData);
                     throw new Error('Dados inválidos recebidos da API');
                 }
+                
+                const confirmacoes = responseData.confirmacoes;
 
                 // Carregar estatísticas do servidor se disponível
                 let stats = null;
@@ -660,6 +679,7 @@
             try {
                 const response = await fetch('/api/gerar-rota', {
                     method: 'POST',
+                    credentials: 'include',
                     headers: {
                         'Content-Type': 'application/json'
                     }
@@ -701,7 +721,11 @@
 
             try {
                 const response = await fetch(`/api/admin/reenviar-webhook/${confirmacaoId}`, {
-                    method: 'POST'
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Authorization': 'Basic ' + btoa('admin:' + '<%= process.env.ADMIN_PASSWORD || "admin123" %>')
+                    }
                 });
 
                 const result = await response.json();
@@ -718,44 +742,6 @@
             }
         }
 
-        // Função para importar dados de teste
-         async function importarDadosTeste() {
-             const resultadoDiv = document.getElementById('resultadoTeste');
-             
-             try {
-                 resultadoDiv.style.display = 'block';
-                 resultadoDiv.innerHTML = '<div class="loading">🧪 Importando dados de teste...</div>';
-                 
-                 const response = await fetch('/api/importar-dados-teste', {
-                     method: 'POST',
-                     headers: {
-                         'Content-Type': 'application/json',
-                     }
-                 });
-                 
-                 const data = await response.json();
-                 
-                 if (data.success) {
-                     resultadoDiv.innerHTML = `
-                         <div class="success">
-                             ✅ ${data.message}<br>
-                             📊 Importados: ${data.importados} | Erros: ${data.erros}
-                         </div>
-                     `;
-                     // Recarregar estatísticas
-                     setTimeout(() => {
-                         location.reload();
-                     }, 2000);
-                 } else {
-                     resultadoDiv.innerHTML = `<div class="error">❌ ${data.error}</div>`;
-                 }
-                 
-             } catch (error) {
-                 console.error('Erro ao importar dados de teste:', error);
-                 resultadoDiv.innerHTML = '<div class="error">❌ Erro ao importar dados de teste</div>';
-             }
-         }
-
         // Variáveis globais para gerenciar participantes
         let participantesDisponiveis = [];
         let participantesSelecionados = new Set();
@@ -763,12 +749,18 @@
         // Carregar participantes disponíveis para envio
         async function carregarParticipantesEnvio() {
             try {
-                const response = await fetch('/api/participantes-envio');
+                const response = await fetch('/api/participantes-envio', {
+                    credentials: 'include',
+                    headers: {
+                        'Authorization': 'Basic ' + btoa('admin:' + '<%= process.env.ADMIN_PASSWORD || "admin123" %>')
+                    }
+                });
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                participantesDisponiveis = await response.json();
+                const data = await response.json();
+                participantesDisponiveis = data.participantes || data;
                 renderizarParticipantes();
                 
             } catch (error) {
@@ -782,6 +774,9 @@
         function renderizarParticipantes() {
             const tbody = document.getElementById('participantesTableBody');
             tbody.innerHTML = '';
+            
+            // Limpar seleções anteriores
+            participantesSelecionados.clear();
             
             if (participantesDisponiveis.length === 0) {
                 document.getElementById('loadingParticipantes').innerHTML = 
@@ -820,11 +815,20 @@
 
         // Toggle seleção de participante individual
         function toggleParticipante(participanteId) {
-            if (participantesSelecionados.has(participanteId)) {
-                participantesSelecionados.delete(participanteId);
-            } else {
+            console.log('Toggle participante chamado para ID:', participanteId);
+            const checkbox = document.querySelector(`input[type="checkbox"][value="${participanteId}"]`);
+            console.log('Checkbox encontrado:', checkbox);
+            console.log('Checkbox checked:', checkbox ? checkbox.checked : 'N/A');
+            
+            if (checkbox && checkbox.checked) {
                 participantesSelecionados.add(participanteId);
+                console.log('Adicionado ao conjunto:', participanteId);
+            } else if (checkbox) {
+                participantesSelecionados.delete(participanteId);
+                console.log('Removido do conjunto:', participanteId);
             }
+            
+            console.log('Estado atual do conjunto:', participantesSelecionados);
             atualizarContador();
             atualizarSelectAll();
         }
@@ -900,6 +904,9 @@
 
          // Função para enviar mensagens de confirmação
         async function enviarMensagens() {
+            console.log('Participantes selecionados:', participantesSelecionados);
+            console.log('Tamanho do conjunto:', participantesSelecionados.size);
+            
             if (participantesSelecionados.size === 0) {
                 alert('Por favor, selecione pelo menos um participante para enviar mensagens.');
                 return;
@@ -925,20 +932,22 @@
                 
                 const response = await fetch('/api/enviar-mensagens', {
                     method: 'POST',
+                    credentials: 'include',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Authorization': 'Basic ' + btoa('admin:' + '<%= process.env.ADMIN_PASSWORD || "admin123" %>')
                     },
                     body: JSON.stringify({
                         baseUrl: baseUrl,
-                        participantesSelecionados: Array.from(participantesSelecionados)
+                        participantes: Array.from(participantesSelecionados)
                     })
                 });
                 
                 const data = await response.json();
                 
-                if (data.success) {
+                if (response.ok && data.success) {
                     let detalhesHtml = '';
-                    if (data.detalhes && data.detalhes.length > 0) {
+                    if (data.resultados && data.resultados.length > 0) {
                         detalhesHtml = `
                             <div class="detalhes-envio" style="margin-top: 15px;">
                                 <h4>Detalhes do Envio:</h4>
@@ -953,7 +962,7 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            ${data.detalhes.map(detalhe => `
+                                            ${data.resultados.map(detalhe => `
                                                 <tr>
                                                     <td style="padding: 6px; border: 1px solid #ddd;">${detalhe.nome}</td>
                                                     <td style="padding: 6px; border: 1px solid #ddd;">${detalhe.telefone}</td>
@@ -976,7 +985,7 @@
                     resultadoDiv.innerHTML = `
                         <div class="success">
                             ✅ ${data.message}<br>
-                            📊 Total: ${data.total} | Enviados: ${data.enviados} | Erros: ${data.erros}
+                            📊 Total: ${data.resumo?.total || 0} | Enviados: ${data.resumo?.enviados || 0} | Erros: ${data.resumo?.erros || 0}
                             ${detalhesHtml}
                         </div>
                     `;
@@ -984,12 +993,12 @@
                     // Limpar seleção após envio bem-sucedido
                     deselecionarTodos();
                 } else {
-                    resultadoDiv.innerHTML = `<div class="error">❌ ${data.error}</div>`;
+                    resultadoDiv.innerHTML = `<div class="error">❌ ${data.error || data.message || 'Erro desconhecido'}</div>`;
                 }
                 
             } catch (error) {
                 console.error('Erro ao enviar mensagens:', error);
-                resultadoDiv.innerHTML = '<div class="error">❌ Erro ao enviar mensagens</div>';
+                resultadoDiv.innerHTML = `<div class="error">❌ ${error.message || 'Erro ao enviar mensagens'}</div>`;
             } finally {
                 btnEnviar.disabled = false;
                 btnEnviar.innerHTML = originalText;
@@ -1000,10 +1009,54 @@
             document.getElementById('importModal').style.display = 'block';
         }
 
+        async function importarDadosReais() {
+            if (!confirm('Tem certeza que deseja importar os dados reais do arquivo table.json? Esta operação pode demorar alguns minutos.')) {
+                return;
+            }
+
+            try {
+                const loadingMsg = document.createElement('div');
+                loadingMsg.innerHTML = '<div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 10000;"><div class="spinner" style="margin: 0 auto 10px;"></div><p>Importando dados reais... Aguarde...</p></div>';
+                document.body.appendChild(loadingMsg);
+
+                const response = await fetch('/api/importar-dados-reais', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Authorization': 'Basic ' + btoa('admin:' + '<%= process.env.ADMIN_PASSWORD || "admin123" %>')
+                    }
+                });
+
+                const result = await response.json();
+                document.body.removeChild(loadingMsg);
+
+                if (result.success) {
+                    alert(`Importação concluída com sucesso!\n\nTotal processado: ${result.data.totalProcessed}\nSucessos: ${result.data.successCount}\nErros: ${result.data.errorCount}`);
+                    // Atualizar dados na tela
+                    carregarConfirmacoes();
+                    carregarParticipantes();
+                } else {
+                    alert('Erro na importação: ' + result.message);
+                }
+
+            } catch (error) {
+                // Remover loading se ainda existir
+                const loadingMsg = document.querySelector('div[style*="position: fixed"]');
+                if (loadingMsg) {
+                    document.body.removeChild(loadingMsg.parentElement);
+                }
+                alert('Erro na importação: ' + error.message);
+            }
+        }
+
         async function confirmarImportacao() {
             try {
                 const response = await fetch('/api/admin/importar', {
-                    method: 'POST'
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Authorization': 'Basic ' + btoa('admin:' + '<%= process.env.ADMIN_PASSWORD || "admin123" %>')
+                    }
                 });
 
                 const result = await response.json();
