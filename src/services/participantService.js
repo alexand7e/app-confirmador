@@ -67,6 +67,12 @@ class ParticipantService {
         return result.rows;
     }
 
+    // Buscar participantes com mensagens enviadas mas não confirmadas
+    static async getSentButNotConfirmed() {
+        const result = await participantesQueries.listSentButNotConfirmed();
+        return result.rows;
+    }
+
     // Buscar participantes selecionados
     static async getSelectedParticipants(participanteIds) {
         if (!participanteIds || participanteIds.length === 0) {

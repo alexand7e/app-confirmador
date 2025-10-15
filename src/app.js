@@ -7,9 +7,10 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 
 // Importar módulos organizados
-const { testConnection } = require('./database/connection');
+const { testConnection, pool } = require('./database/connection');
 const { initializeDatabase, carregarDadosTeste } = require('./database/init');
 const { rotasQueries, confirmacoesQueries, participantesQueries } = require('./database/queries');
+const mensagensQueries = require('./database/mensagensQueries');
 const ParticipantService = require('./services/participantService');
 
 const app = express();
@@ -141,7 +142,28 @@ app.get('/:codigo', async (req, res) => {
         const rota = result.rows[0];
         
         if (rota.usado) {
-            return res.render('ja-confirmado', { codigo });
+            // Buscar informações do treinamento do banco
+            const infoTreinamento = await mensagensQueries.buscarPorTipo('info_treinamento');
+            let dadosTreinamento = {};
+            
+            if (infoTreinamento) {
+                try {
+                    dadosTreinamento = JSON.parse(infoTreinamento.conteudo);
+                } catch (error) {
+                    logger.error('Erro ao parsear dados do treinamento:', error);
+                    // Usar dados padrão em caso de erro
+                    dadosTreinamento = {
+                        nome_evento: 'CapacitIA – Autonomia Digital para Pessoas Idosas',
+                        local: 'Espaço da Cidadania Digital',
+                        endereco: 'R. Clodoaldo Freitas, 729 - Centro (Norte), Teresina - PI, 64000-360 (próx. ao Lindolfo Monteiro)',
+                        dias: '14 e 16 de outubro de 2025 (terça e quinta)',
+                        horario: '08h às 12h',
+                        mensagem_final: 'Aguardamos você no treinamento!'
+                    };
+                }
+            }
+            
+            return res.render('ja-confirmado', { codigo, treinamento: dadosTreinamento });
         }
         
         let participante = null;
@@ -229,8 +251,38 @@ app.post('/api/confirmar/:codigo', async (req, res) => {
                 await confirmacoesQueries.markWebhookSent(confirmacaoId);
                 logger.info(`Webhook enviado para confirmação ${confirmacaoId}`);
                 
-                // Enviar segunda mensagem de confirmação
-                const mensagemConfirmacao = `Olá, ${nome}! 🎉
+                // Buscar mensagem de confirmação do banco de dados
+                const mensagemConfirmacaoResult = await mensagensQueries.buscarPorTipo('confirmacao_whatsapp');
+                let mensagemConfirmacao;
+                
+                if (mensagemConfirmacaoResult && mensagemConfirmacaoResult.conteudo) {
+                    // Buscar informações do treinamento para substituir variáveis
+                    const infoTreinamentoResult = await mensagensQueries.buscarPorTipo('info_treinamento');
+                    let dadosTreinamento = {};
+                    
+                    if (infoTreinamentoResult && infoTreinamentoResult.conteudo) {
+                        try {
+                            dadosTreinamento = JSON.parse(infoTreinamentoResult.conteudo);
+                        } catch (e) {
+                            logger.warn('Erro ao parsear dados do treinamento, usando valores padrão');
+                            dadosTreinamento = {
+                                local: 'R. Clodoaldo Freitas, 729 - Centro (Norte), Teresina - PI, 64000-360 (próx. ao Lindolfo Monteiro)',
+                                dias: '14 e 16 de outubro de 2025 (terça e quinta)',
+                                horario: '08h às 12h'
+                            };
+                        }
+                    }
+                    
+                    // Substituir variáveis na mensagem
+                    mensagemConfirmacao = mensagemConfirmacaoResult.conteudo
+                        .replace(/{nome}/g, nome)
+                        .replace(/{local}/g, dadosTreinamento.local || 'R. Clodoaldo Freitas, 729 - Centro (Norte), Teresina - PI, 64000-360 (próx. ao Lindolfo Monteiro)')
+                        .replace(/{dias}/g, dadosTreinamento.dias || '14 e 16 de outubro de 2025 (terça e quinta)')
+                        .replace(/{horario}/g, dadosTreinamento.horario || '08h às 12h');
+                } else {
+                    // Fallback para mensagem hardcoded se não encontrar no banco
+                    logger.warn('Mensagem de confirmação não encontrada no banco, usando fallback');
+                    mensagemConfirmacao = `Olá, ${nome}! 🎉
 
 Que alegria ter você conosco! 💛
 Sua participação no *treinamento CapacitIA – Autonomia Digital* para Pessoas Idosas foi confirmada com sucesso! 🙌
@@ -238,12 +290,13 @@ Sua participação no *treinamento CapacitIA – Autonomia Digital* para Pessoas
 📍 Local: R. Clodoaldo Freitas, 729 – Centro (Norte), Teresina-PI
 (próx. ao Estádio Lindolfo Monteiro)
 
-📅 Dias: 14 e 16 de outubro de 2025 (terça e quinta)
+📅 Dias: 21 e 23 de outubro de 2025 (terça e quinta)
 🕗 Horário: 08h às 12h
 
 O curso será *leve, acolhedor e com muita prática, pra você aprender de forma simples, divertida e no seu ritmo!* 💻✨
 
-Estamos muito felizes em receber você! 😊`;
+Estamos muito felizes em receber você! 😊`;
+                }
 
                 logger.debug(`Enviando segunda mensagem de confirmação`);
                 const segundaResponse = await axios.post(webhookUrl, {
@@ -346,6 +399,24 @@ app.get('/api/participantes-envio', requireAuth, async (req, res) => {
     }
 });
 
+// Listar participantes com mensagens enviadas mas não confirmadas
+app.get('/api/participantes-nao-confirmados', requireAuth, async (req, res) => {
+    try {
+        const participantes = await ParticipantService.getSentButNotConfirmed();
+        
+        res.json({ 
+            success: true, 
+            participantes 
+        });
+    } catch (error) {
+        logger.error('Erro ao listar participantes não confirmados:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Erro interno do servidor' 
+        });
+    }
+});
+
 // Enviar mensagens para participantes selecionados
 app.post('/api/enviar-mensagens', requireAuth, async (req, res) => {
     try {
@@ -378,20 +449,18 @@ app.post('/api/enviar-mensagens', requireAuth, async (req, res) => {
         
         for (const participante of participantesData) {
             try {
-                const mensagem = `Olá, *${participante.nome}*! Tudo bem? 😄
+                // Buscar template de mensagem do banco
+                const templateMensagem = await mensagensQueries.buscarPorTipo('convite_whatsapp');
+                
+                if (!templateMensagem) {
+                    throw new Error('Template de mensagem não encontrado no banco de dados');
+                }
 
-Você foi convidada(o) para o treinamento CapacitIA – Autonomia Digital para Pessoas Idosas , promovido pela Secretaria de Inteligência Artificial do Piauí .
-
-📅 14 e 16 de outubro (terça e quinta)
-🕗 08h às 12h
-📍 Espaço da Cidadania Digital (próx. ao Estádio Lindolfo Monteiro)
-
-Para confirmar sua presença, clique no link abaixo 👇
-🔗 ${baseUrl}/${participante.codigo}
-
-*Para ter acesso ao Link e confirmar sua inscrição, envie um "Oi" aqui no Whatsapp.*
-
-💻 Será um momento *leve, acolhedor e cheio de prática* — pra todo mundo aprender de forma simples e divertida!`;
+                // Substituir variáveis no template
+                let mensagem = templateMensagem.conteudo
+                    .replace(/{nome}/g, participante.nome)
+                    .replace(/{codigo}/g, participante.codigo)
+                    .replace(/{baseUrl}/g, baseUrl);
                 
                 if (webhookUrl) {
                     logger.info(`Enviando requisição para webhook: ${webhookUrl}`);
@@ -560,6 +629,72 @@ app.post('/api/admin/importar', requireAuth, async (req, res) => {
 });
 
 // Endpoint para reenviar webhook
+// API para listar mensagens
+app.get('/api/mensagens', requireAuth, async (req, res) => {
+    try {
+        const mensagens = await mensagensQueries.listarTodas();
+        res.json({ success: true, mensagens });
+    } catch (error) {
+        logger.error('Erro ao listar mensagens:', error);
+        res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+    }
+});
+
+// API para buscar mensagem por ID
+app.get('/api/mensagens/:id', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const mensagem = await pool.query('SELECT * FROM mensagens WHERE id = $1', [id]);
+        
+        if (mensagem.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Mensagem não encontrada' });
+        }
+        
+        res.json({ success: true, mensagem: mensagem.rows[0] });
+    } catch (error) {
+        logger.error('Erro ao buscar mensagem:', error);
+        res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+    }
+});
+
+// API para atualizar mensagem
+app.put('/api/mensagens/:id', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { titulo, conteudo, variaveis, motivo } = req.body;
+        
+        if (!titulo || !conteudo) {
+            return res.status(400).json({ success: false, message: 'Título e conteúdo são obrigatórios' });
+        }
+        
+        const mensagemAtualizada = await mensagensQueries.atualizar(
+            id, 
+            titulo, 
+            conteudo, 
+            variaveis ? JSON.stringify(variaveis) : null,
+            'admin',
+            motivo
+        );
+        
+        res.json({ success: true, mensagem: mensagemAtualizada });
+    } catch (error) {
+        logger.error('Erro ao atualizar mensagem:', error);
+        res.status(500).json({ success: false, message: error.message || 'Erro interno do servidor' });
+    }
+});
+
+// API para buscar histórico de uma mensagem
+app.get('/api/mensagens/:id/historico', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const historico = await mensagensQueries.buscarHistorico(id);
+        res.json({ success: true, historico });
+    } catch (error) {
+        logger.error('Erro ao buscar histórico:', error);
+        res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+    }
+});
+
 app.post('/api/reenviar-webhook/:id', requireAuth, async (req, res) => {
     const confirmacaoId = req.params.id;
     

@@ -322,6 +322,66 @@
             border: 1px solid #fecaca;
         }
 
+        /* Toggle Switch Styles */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            -webkit-transition: .4s;
+            transition: .4s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            -webkit-transition: .4s;
+            transition: .4s;
+        }
+
+        input:checked + .slider {
+            background-color: #4f46e5;
+        }
+
+        input:focus + .slider {
+            box-shadow: 0 0 1px #4f46e5;
+        }
+
+        input:checked + .slider:before {
+            -webkit-transform: translateX(26px);
+            -ms-transform: translateX(26px);
+            transform: translateX(26px);
+        }
+
+        .slider.round {
+            border-radius: 34px;
+        }
+
+        .slider.round:before {
+            border-radius: 50%;
+        }
+
         @media (max-width: 768px) {
             .header-content {
                 flex-direction: column;
@@ -362,6 +422,42 @@
                 <button class="logout-btn" onclick="logout()">
                     <i class="fas fa-sign-out-alt"></i> Sair
                 </button>
+            </div>
+        </div>
+
+        <!-- Nova seção: Mensagens Não Confirmadas -->
+        <div class="table-container" id="naoConfirmadosContainer" style="display: none;">
+            <div class="table-header">
+                <h2 class="table-title">
+                    <i class="fas fa-exclamation-triangle"></i> Mensagens Não Confirmadas
+                </h2>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="color: #64748b; font-size: 14px;">Mostrar participantes com mensagens enviadas mas não confirmadas</span>
+                    <label class="switch">
+                        <input type="checkbox" id="toggleNaoConfirmados" onchange="toggleMensagensNaoConfirmadas()">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <div id="loadingNaoConfirmados" class="loading">
+                    <div class="spinner"></div>
+                    <p>Carregando dados...</p>
+                </div>
+                <table id="naoConfirmadosTable" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Telefone</th>
+                            <th>Projeto</th>
+                            <th>Código</th>
+                            <th>Mensagem Enviada</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="naoConfirmadosTableBody">
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -490,6 +586,104 @@
             <button class="btn btn-primary" onclick="exportarDados()">
                 <i class="fas fa-download"></i> Exportar Dados
             </button>
+        </div>
+
+        <!-- Nova seção: Gerenciamento de Mensagens -->
+        <div class="table-container">
+            <div class="table-header">
+                <h2 class="table-title">
+                    <i class="fas fa-edit"></i> Gerenciamento de Mensagens
+                </h2>
+                <button class="btn btn-primary" onclick="carregarMensagens()">
+                    <i class="fas fa-sync-alt"></i> Atualizar
+                </button>
+            </div>
+            <div class="table-wrapper">
+                <div id="loadingMensagens" class="loading">
+                    <div class="spinner"></div>
+                    <p>Carregando mensagens...</p>
+                </div>
+                <table id="mensagensTable" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Título</th>
+                            <th>Status</th>
+                            <th>Última Atualização</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mensagensTableBody">
+                        <!-- Mensagens serão carregadas aqui -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Modal para editar mensagem -->
+        <div id="modalEditarMensagem" class="modal">
+            <div class="modal-content" style="max-width: 800px;">
+                <div class="modal-header">
+                    <h3><i class="fas fa-edit"></i> Editar Mensagem</h3>
+                    <span class="close" onclick="fecharModalMensagem()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <form id="formEditarMensagem">
+                        <input type="hidden" id="mensagemId">
+                        
+                        <div style="margin-bottom: 20px;">
+                            <label for="mensagemTitulo" style="display: block; margin-bottom: 8px; font-weight: 600;">Título:</label>
+                            <input type="text" id="mensagemTitulo" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;" required>
+                        </div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <label for="mensagemConteudo" style="display: block; margin-bottom: 8px; font-weight: 600;">Conteúdo:</label>
+                            <textarea id="mensagemConteudo" rows="8" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-family: monospace;" required></textarea>
+                            <small style="color: #6b7280; font-size: 12px;">
+                                Use variáveis como ${nome}, ${codigo}, ${baseUrl} para personalização dinâmica.
+                            </small>
+                        </div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <label for="mensagemVariaveis" style="display: block; margin-bottom: 8px; font-weight: 600;">Variáveis (JSON):</label>
+                            <textarea id="mensagemVariaveis" rows="3" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-family: monospace;" placeholder='["nome", "codigo", "baseUrl"]'></textarea>
+                            <small style="color: #6b7280; font-size: 12px;">
+                                Lista das variáveis disponíveis em formato JSON.
+                            </small>
+                        </div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <label for="motivoEdicao" style="display: block; margin-bottom: 8px; font-weight: 600;">Motivo da Edição:</label>
+                            <input type="text" id="motivoEdicao" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;" placeholder="Descreva o motivo da alteração...">
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                            <button type="button" class="btn btn-secondary" onclick="fecharModalMensagem()">Cancelar</button>
+                            <button type="button" class="btn btn-primary" onclick="verHistoricoMensagem()">
+                                <i class="fas fa-history"></i> Ver Histórico
+                            </button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save"></i> Salvar Alterações
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para histórico de mensagem -->
+        <div id="modalHistoricoMensagem" class="modal">
+            <div class="modal-content" style="max-width: 900px;">
+                <div class="modal-header">
+                    <h3><i class="fas fa-history"></i> Histórico de Alterações</h3>
+                    <span class="close" onclick="fecharModalHistorico()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div id="historicoContent">
+                        <!-- Histórico será carregado aqui -->
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="table-container">
@@ -1139,6 +1333,108 @@
             document.getElementById(modalId).style.display = 'none';
         }
 
+        // Função para toggle das mensagens não confirmadas
+        async function toggleMensagensNaoConfirmadas() {
+            const toggle = document.getElementById('toggleNaoConfirmados');
+            const container = document.getElementById('naoConfirmadosContainer');
+            
+            if (toggle.checked) {
+                container.style.display = 'block';
+                await carregarMensagensNaoConfirmadas();
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
+        // Carregar mensagens não confirmadas
+        async function carregarMensagensNaoConfirmadas() {
+            const loadingElement = document.getElementById('loadingNaoConfirmados');
+            const tableElement = document.getElementById('naoConfirmadosTable');
+            
+            loadingElement.style.display = 'block';
+            tableElement.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/participantes-nao-confirmados', {
+                    credentials: 'include',
+                    headers: {
+                        'Authorization': 'Basic ' + btoa('admin:' + '<%= process.env.ADMIN_PASSWORD || "admin123" %>')
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (!data.success || !Array.isArray(data.participantes)) {
+                    throw new Error('Dados inválidos recebidos da API');
+                }
+
+                preencherTabelaNaoConfirmados(data.participantes);
+                
+                loadingElement.style.display = 'none';
+                tableElement.style.display = 'table';
+
+            } catch (error) {
+                console.error('Erro ao carregar mensagens não confirmadas:', error);
+                loadingElement.style.display = 'none';
+                
+                const tbody = document.getElementById('naoConfirmadosTableBody');
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #ef4444;">Erro ao carregar dados</td></tr>';
+                tableElement.style.display = 'table';
+            }
+        }
+
+        // Preencher tabela de não confirmados
+        function preencherTabelaNaoConfirmados(participantes) {
+            const tbody = document.getElementById('naoConfirmadosTableBody');
+            tbody.innerHTML = '';
+
+            if (participantes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #64748b;">Nenhuma mensagem não confirmada encontrada</td></tr>';
+                return;
+            }
+
+            participantes.forEach(participante => {
+                const row = document.createElement('tr');
+                
+                const dataFormatada = new Date(participante.mensagem_enviada_em).toLocaleString('pt-BR');
+                
+                row.innerHTML = `
+                    <td style="padding: 12px;"><strong>${participante.nome}</strong></td>
+                    <td style="padding: 12px;">${participante.telefone}</td>
+                    <td style="padding: 12px; font-size: 13px; color: #6b7280;">${participante.projeto_extensao || 'Não informado'}</td>
+                    <td style="padding: 12px; font-family: monospace; font-size: 13px;"><code>${participante.codigo}</code></td>
+                    <td style="padding: 12px; font-size: 13px; color: #6b7280;">${dataFormatada}</td>
+                    <td style="padding: 12px;">
+                        <button class="btn btn-small btn-warning" onclick="reenviarMensagem('${participante.codigo}', '${participante.nome}')">
+                            <i class="fas fa-redo"></i> Reenviar
+                        </button>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // Função para reenviar mensagem
+        async function reenviarMensagem(codigo, nome) {
+            if (!confirm(`Deseja reenviar a mensagem de confirmação para ${nome}?`)) {
+                return;
+            }
+
+            try {
+                // Aqui você pode implementar a lógica de reenvio
+                // Por enquanto, apenas mostra uma mensagem
+                alert(`Funcionalidade de reenvio será implementada. Código: ${codigo}`);
+            } catch (error) {
+                console.error('Erro ao reenviar mensagem:', error);
+                alert('Erro ao reenviar mensagem: ' + error.message);
+            }
+        }
+
         // Fechar modal clicando fora
         window.onclick = function(event) {
             const modals = document.querySelectorAll('.modal');
@@ -1148,6 +1444,257 @@
                 }
             });
         }
+
+        // Funções para gerenciamento de mensagens
+        let mensagensCarregadas = [];
+
+        async function carregarMensagens() {
+            document.getElementById('loadingMensagens').style.display = 'block';
+            document.getElementById('mensagensTable').style.display = 'none';
+
+            try {
+                const response = await fetch('/api/mensagens', {
+                    credentials: 'include',
+                    headers: {
+                        'Authorization': 'Basic ' + btoa('admin:' + '<%= process.env.ADMIN_PASSWORD || "admin123" %>')
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (!data.success) {
+                    throw new Error(data.message || 'Erro ao carregar mensagens');
+                }
+
+                mensagensCarregadas = data.mensagens;
+                preencherTabelaMensagens(data.mensagens);
+
+                document.getElementById('loadingMensagens').style.display = 'none';
+                document.getElementById('mensagensTable').style.display = 'table';
+
+            } catch (error) {
+                console.error('Erro ao carregar mensagens:', error);
+                document.getElementById('loadingMensagens').innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #ef4444;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 15px;"></i>
+                        <p>Erro ao carregar mensagens: ${error.message}</p>
+                        <button class="btn btn-primary" onclick="carregarMensagens()">Tentar Novamente</button>
+                    </div>
+                `;
+            }
+        }
+
+        function preencherTabelaMensagens(mensagens) {
+            const tbody = document.getElementById('mensagensTableBody');
+            tbody.innerHTML = '';
+
+            mensagens.forEach(mensagem => {
+                const row = document.createElement('tr');
+                
+                const dataFormatada = new Date(mensagem.atualizado_em).toLocaleString('pt-BR');
+                const statusClass = mensagem.ativo ? 'status-success' : 'status-warning';
+                const statusText = mensagem.ativo ? 'Ativo' : 'Inativo';
+                
+                row.innerHTML = `
+                    <td style="padding: 12px;"><strong>${mensagem.tipo}</strong></td>
+                    <td style="padding: 12px;">${mensagem.titulo}</td>
+                    <td style="padding: 12px;">
+                        <span class="status ${statusClass}">${statusText}</span>
+                    </td>
+                    <td style="padding: 12px; font-size: 13px; color: #6b7280;">${dataFormatada}</td>
+                    <td style="padding: 12px;">
+                        <button class="btn btn-small btn-primary" onclick="editarMensagem(${mensagem.id})">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                        <button class="btn btn-small btn-info" onclick="verHistoricoMensagem(${mensagem.id})">
+                            <i class="fas fa-history"></i> Histórico
+                        </button>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        async function editarMensagem(id) {
+            try {
+                const response = await fetch(`/api/mensagens/${id}`, {
+                    credentials: 'include',
+                    headers: {
+                        'Authorization': 'Basic ' + btoa('admin:' + '<%= process.env.ADMIN_PASSWORD || "admin123" %>')
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (!data.success) {
+                    throw new Error(data.message || 'Erro ao carregar mensagem');
+                }
+
+                const mensagem = data.mensagem;
+                
+                // Preencher o formulário
+                document.getElementById('mensagemId').value = mensagem.id;
+                document.getElementById('mensagemTitulo').value = mensagem.titulo;
+                document.getElementById('mensagemConteudo').value = mensagem.conteudo;
+                
+                // Tratar variáveis - se já for um array, converter para JSON string
+                let variaveisString = '';
+                if (mensagem.variaveis) {
+                    if (Array.isArray(mensagem.variaveis)) {
+                        variaveisString = JSON.stringify(mensagem.variaveis);
+                    } else if (typeof mensagem.variaveis === 'string') {
+                        variaveisString = mensagem.variaveis;
+                    } else {
+                        variaveisString = JSON.stringify(mensagem.variaveis);
+                    }
+                }
+                document.getElementById('mensagemVariaveis').value = variaveisString;
+                document.getElementById('motivoEdicao').value = '';
+
+                // Mostrar modal
+                document.getElementById('modalEditarMensagem').style.display = 'block';
+
+            } catch (error) {
+                console.error('Erro ao carregar mensagem:', error);
+                alert('Erro ao carregar mensagem: ' + error.message);
+            }
+        }
+
+        function fecharModalMensagem() {
+            document.getElementById('modalEditarMensagem').style.display = 'none';
+        }
+
+        function fecharModalHistorico() {
+            document.getElementById('modalHistoricoMensagem').style.display = 'none';
+        }
+
+        // Submissão do formulário de edição
+        document.getElementById('formEditarMensagem').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const id = document.getElementById('mensagemId').value;
+            const titulo = document.getElementById('mensagemTitulo').value;
+            const conteudo = document.getElementById('mensagemConteudo').value;
+            const variaveisText = document.getElementById('mensagemVariaveis').value;
+            const motivo = document.getElementById('motivoEdicao').value;
+
+            let variaveis = null;
+            if (variaveisText.trim()) {
+                try {
+                    variaveis = JSON.parse(variaveisText);
+                } catch (error) {
+                    alert('Formato JSON inválido para variáveis');
+                    return;
+                }
+            }
+
+            try {
+                const response = await fetch(`/api/mensagens/${id}`, {
+                    method: 'PUT',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Basic ' + btoa('admin:' + '<%= process.env.ADMIN_PASSWORD || "admin123" %>')
+                    },
+                    body: JSON.stringify({
+                        titulo,
+                        conteudo,
+                        variaveis,
+                        motivo
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (!data.success) {
+                    throw new Error(data.message || 'Erro ao salvar mensagem');
+                }
+
+                alert('Mensagem atualizada com sucesso!');
+                fecharModalMensagem();
+                carregarMensagens(); // Recarregar a tabela
+
+            } catch (error) {
+                console.error('Erro ao salvar mensagem:', error);
+                alert('Erro ao salvar mensagem: ' + error.message);
+            }
+        });
+
+        async function verHistoricoMensagem(id) {
+            if (!id && document.getElementById('mensagemId').value) {
+                id = document.getElementById('mensagemId').value;
+            }
+
+            try {
+                const response = await fetch(`/api/mensagens/${id}/historico`, {
+                    credentials: 'include',
+                    headers: {
+                        'Authorization': 'Basic ' + btoa('admin:' + '<%= process.env.ADMIN_PASSWORD || "admin123" %>')
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (!data.success) {
+                    throw new Error(data.message || 'Erro ao carregar histórico');
+                }
+
+                const historicoContent = document.getElementById('historicoContent');
+                
+                if (data.historico.length === 0) {
+                    historicoContent.innerHTML = '<p style="text-align: center; color: #6b7280;">Nenhuma alteração registrada.</p>';
+                } else {
+                    let html = '';
+                    data.historico.forEach(item => {
+                        const dataFormatada = new Date(item.criado_em).toLocaleString('pt-BR');
+                        html += `
+                            <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                                <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 10px;">
+                                    <strong style="color: #1e293b;">Alteração por ${item.usuario}</strong>
+                                    <span style="color: #6b7280; font-size: 13px;">${dataFormatada}</span>
+                                </div>
+                                ${item.motivo ? `<p style="margin-bottom: 10px; color: #4b5563;"><strong>Motivo:</strong> ${item.motivo}</p>` : ''}
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                    <div>
+                                        <h4 style="color: #dc2626; margin-bottom: 5px;">Conteúdo Anterior:</h4>
+                                        <pre style="background: #fef2f2; padding: 10px; border-radius: 4px; font-size: 12px; overflow-x: auto;">${item.conteudo_anterior}</pre>
+                                    </div>
+                                    <div>
+                                        <h4 style="color: #059669; margin-bottom: 5px;">Conteúdo Novo:</h4>
+                                        <pre style="background: #f0fdf4; padding: 10px; border-radius: 4px; font-size: 12px; overflow-x: auto;">${item.conteudo_novo}</pre>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    historicoContent.innerHTML = html;
+                }
+
+                document.getElementById('modalHistoricoMensagem').style.display = 'block';
+
+            } catch (error) {
+                console.error('Erro ao carregar histórico:', error);
+                alert('Erro ao carregar histórico: ' + error.message);
+            }
+        }
+
+        // Carregar mensagens ao inicializar a página
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarMensagens();
+        });
     </script>
 </body>
 </html>

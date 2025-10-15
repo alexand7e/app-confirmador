@@ -219,7 +219,7 @@
 
         <div class="content">
             <div class="message">
-                <strong>Olá!</strong> Sua participação no treinamento <strong>CapacitIA – Autonomia Digital para Pessoas Idosas</strong> já foi confirmada anteriormente.
+                <strong>Olá!</strong> Sua participação no treinamento <strong><%= treinamento.nome_evento || 'CapacitIA – Autonomia Digital para Pessoas Idosas' %></strong> já foi confirmada anteriormente.
             </div>
 
             <div class="info-box">
@@ -230,28 +230,28 @@
                 
                 <div class="info-item">
                     <i class="fas fa-map-marker-alt"></i>
-                    <span><strong>Local:</strong> Espaço da Cidadania Digital</span>
+                    <span><strong>Local:</strong> <%= treinamento.local || 'Espaço da Cidadania Digital' %></span>
                 </div>
                 
                 <div class="info-item">
                     <i class="fas fa-road"></i>
-                    <span><strong>Endereço:</strong> R. Clodoaldo Freitas, 729 - Centro (Norte), Teresina - PI, 64000-360 (próx. ao Lindolfo Monteiro)</span>
+                    <span><strong>Endereço:</strong> <%= treinamento.endereco || 'R. Clodoaldo Freitas, 729 - Centro (Norte), Teresina - PI, 64000-360 (próx. ao Lindolfo Monteiro)' %></span>
                 </div>
                 
                 <div class="info-item">
                     <i class="fas fa-calendar-alt"></i>
-                    <span><strong>Dias:</strong> 14 e 16 de outubro de 2025 (terça e quinta)</span>
+                    <span><strong>Dias:</strong> <%= treinamento.dias || '14 e 16 de outubro de 2025 (terça e quinta)' %></span>
                 </div>
                 
                 <div class="info-item">
                     <i class="fas fa-clock"></i>
-                    <span><strong>Horário:</strong> 08h às 12h</span>
+                    <span><strong>Horário:</strong> <%= treinamento.horario || '08h às 12h' %></span>
                 </div>
             </div>
 
             <p style="color: #16a34a; font-weight: 600; font-size: 1.1rem;">
                 <i class="fas fa-heart" style="color: #ef4444;"></i>
-                Aguardamos você no treinamento!
+                <%= treinamento.mensagem_final || 'Aguardamos você no treinamento!' %>
             </p>
         </div>
 

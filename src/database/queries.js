@@ -226,6 +226,26 @@ const participantesQueries = {
         const placeholders = nomes.map((_, index) => `$${index + 1}`).join(',');
         const query = `DELETE FROM participantes_importados WHERE nome IN (${placeholders})`;
         return await pool.query(query, nomes);
+    },
+
+    // Listar participantes com mensagens enviadas mas não confirmadas
+    listSentButNotConfirmed: async () => {
+        const query = `
+            SELECT 
+                p.id,
+                p.nome,
+                p.telefone,
+                p.projeto_extensao,
+                r.codigo,
+                r.criado_em as mensagem_enviada_em
+            FROM participantes_importados p
+            INNER JOIN rotas r ON r.participante_id = p.id
+            LEFT JOIN confirmacoes c ON c.codigo_rota = r.codigo
+            WHERE p.telefone IS NOT NULL AND p.telefone != ''
+            AND c.id IS NULL
+            ORDER BY r.criado_em DESC
+        `;
+        return await pool.query(query);
     }
 };
 

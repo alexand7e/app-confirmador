@@ -1,5 +1,56 @@
 const { pool } = require('./connection');
 
+// Dados iniciais das mensagens
+const mensagensIniciais = [
+    {
+        tipo: 'convite_whatsapp',
+        titulo: 'Convite para Treinamento CapacitIA',
+        conteudo: `Olá, *{nome}*! Tudo bem? 😄
+
+Você foi convidada(o) para o treinamento CapacitIA – Autonomia Digital para Pessoas Idosas , promovido pela Secretaria de Inteligência Artificial do Piauí .
+
+📅 14 e 16 de outubro (terça e quinta)
+🕗 08h às 12h
+📍 Espaço da Cidadania Digital (próx. ao Estádio Lindolfo Monteiro)
+
+Para confirmar sua presença, clique no link abaixo 👇
+🔗 {baseUrl}/{codigo}
+
+💻 Será um momento *leve, acolhedor e cheio de prática* — pra todo mundo aprender de forma simples e divertida!`,
+        variaveis: JSON.stringify(['nome', 'codigo', 'baseUrl'])
+    },
+    {
+        tipo: 'confirmacao_whatsapp',
+        titulo: 'Mensagem de Confirmação de Presença',
+        conteudo: `Olá, {nome}! 🎉
+
+Que alegria ter você conosco! 💛
+Sua participação no *treinamento CapacitIA – Autonomia Digital* para Pessoas Idosas foi confirmada com sucesso! 🙌
+
+📍 Local: {local}
+📅 Dias: {dias}
+🕗 Horário: {horario}
+
+O curso será *leve, acolhedor e com muita prática, pra você aprender de forma simples, divertida e no seu ritmo!* 💻✨
+
+Estamos muito felizes em receber você! 😊`,
+        variaveis: JSON.stringify(['nome', 'local', 'dias', 'horario'])
+    },
+    {
+        tipo: 'info_treinamento',
+        titulo: 'Informações do Treinamento',
+        conteudo: JSON.stringify({
+            nome_evento: 'CapacitIA – Autonomia Digital para Pessoas Idosas',
+            local: 'R. Clodoaldo Freitas, 729 - Centro (Norte), Teresina - PI, 64000-360 (próx. ao Lindolfo Monteiro)',
+            endereco: 'R. Clodoaldo Freitas, 729 - Centro (Norte), Teresina - PI, 64000-360 (próx. ao Lindolfo Monteiro)',
+            dias: '14 e 16 de outubro de 2025 (terça e quinta)',
+            horario: '08h às 12h',
+            mensagem_final: 'Aguardamos você no treinamento!'
+        }),
+        variaveis: JSON.stringify(['nome_evento', 'local', 'endereco', 'dias', 'horario', 'mensagem_final'])
+    }
+];
+
 // Queries de criação de tabelas
 const createTablesQueries = {
     // Criar tabela rotas
@@ -44,6 +95,33 @@ const createTablesQueries = {
             outro_projeto VARCHAR(255),
             autorizacao_dados VARCHAR(10),
             dificuldades TEXT
+        )
+    `,
+
+    // Criar tabela mensagens
+    createMensagensTable: `
+        CREATE TABLE IF NOT EXISTS mensagens (
+            id SERIAL PRIMARY KEY,
+            tipo VARCHAR(50) NOT NULL, -- 'convite_whatsapp', 'info_treinamento', etc.
+            titulo VARCHAR(255) NOT NULL,
+            conteudo TEXT NOT NULL,
+            variaveis JSON, -- Armazena variáveis disponíveis como {nome}, {codigo}, etc.
+            ativo BOOLEAN DEFAULT TRUE,
+            criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `,
+
+    // Criar tabela historico_mensagens
+    createHistoricoMensagensTable: `
+        CREATE TABLE IF NOT EXISTS historico_mensagens (
+            id SERIAL PRIMARY KEY,
+            mensagem_id INTEGER REFERENCES mensagens(id) ON DELETE CASCADE,
+            conteudo_anterior TEXT NOT NULL,
+            conteudo_novo TEXT NOT NULL,
+            usuario VARCHAR(100) DEFAULT 'admin',
+            motivo VARCHAR(255),
+            criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     `
 };
@@ -133,6 +211,14 @@ const initializeDatabase = async () => {
         await pool.query(createTablesQueries.createParticipantesTable);
         console.log('✅ Tabela participantes_importados criada/verificada');
 
+        // Criar tabela mensagens
+        await pool.query(createTablesQueries.createMensagensTable);
+        console.log('✅ Tabela mensagens criada/verificada');
+
+        // Criar tabela historico_mensagens
+        await pool.query(createTablesQueries.createHistoricoMensagensTable);
+        console.log('✅ Tabela historico_mensagens criada/verificada');
+
         console.log('🎉 Todas as tabelas foram criadas/verificadas com sucesso!');
         return true;
     } catch (error) {
@@ -151,6 +237,8 @@ const carregarDadosTeste = async () => {
         
         if (existingTest.rows.length > 0) {
             console.log('ℹ️  Dados de teste já existem, pulando inserção');
+            // Mesmo que os dados de teste existam, verificar se as mensagens precisam ser carregadas
+            await carregarMensagensIniciais();
             return;
         }
 
@@ -198,11 +286,45 @@ const carregarDadosTeste = async () => {
 
             console.log(`✅ Participante ${participante.nome} carregado com código: ${codigoTeste}`);
         }
+
+        // Carregar mensagens iniciais
+        await carregarMensagensIniciais();
         
         console.log(`✅ Todos os dados de teste carregados com sucesso! ${codigosTeste.length} participantes criados.`);
         return codigosTeste;
     } catch (error) {
         console.error('❌ Erro ao carregar dados de teste:', error);
+        throw error;
+    }
+};
+
+// Função para carregar mensagens iniciais
+const carregarMensagensIniciais = async () => {
+    try {
+        console.log('📝 Verificando mensagens iniciais...');
+        
+        // Verificar se já existem mensagens na tabela
+        const existingMessages = await pool.query('SELECT COUNT(*) as count FROM mensagens');
+        const messageCount = parseInt(existingMessages.rows[0].count);
+        
+        if (messageCount > 0) {
+            console.log(`ℹ️  Já existem ${messageCount} mensagens na tabela, pulando inserção`);
+            return;
+        }
+
+        console.log('📝 Carregando mensagens iniciais...');
+        for (const mensagem of mensagensIniciais) {
+            const result = await pool.query(
+                'INSERT INTO mensagens (tipo, titulo, conteudo, variaveis) VALUES ($1, $2, $3, $4) RETURNING id',
+                [mensagem.tipo, mensagem.titulo, mensagem.conteudo, mensagem.variaveis]
+            );
+            console.log(`✅ Mensagem '${mensagem.titulo}' carregada com ID: ${result.rows[0].id}`);
+        }
+        
+        console.log('✅ Mensagens iniciais carregadas com sucesso!');
+    } catch (error) {
+        console.error('❌ Erro ao carregar mensagens iniciais:', error);
+        console.error('Detalhes do erro:', error.message);
         throw error;
     }
 };
