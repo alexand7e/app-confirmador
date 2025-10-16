@@ -296,7 +296,7 @@
                         </div>
                         <div class="detail-text">
                             <div class="detail-label">Dias</div>
-                            <div class="detail-value">14 e 16 de outubro de 2025 (terça e quinta)</div>
+                            <div class="detail-value"><%= treinamento.dias || '14 e 16 de outubro de 2025 (terça e quinta)' %></div>
                         </div>
                     </div>
                     
@@ -306,7 +306,7 @@
                         </div>
                         <div class="detail-text">
                             <div class="detail-label">Horário</div>
-                            <div class="detail-value">08h às 12h</div>
+                            <div class="detail-value"><%= treinamento.horario || '08h às 12h' %></div>
                         </div>
                     </div>
                     
@@ -317,10 +317,10 @@
                         <div class="detail-text">
                             <div class="detail-label">Local</div>
                             <div class="detail-value">
-                                Espaço da Cidadania Digital<br>
-                                R. Clodoaldo Freitas, 729 - Centro (Norte)<br>
-                                Teresina - PI, 64000-360<br>
-                                (próximo ao Lindolfo Monteiro)
+                                <%= treinamento.local || 'Espaço da Cidadania Digital' %><br>
+                                <%= treinamento.endereco || 'R. Clodoaldo Freitas, 729 - Centro (Norte)' %><br>
+                                <%= treinamento.cidade || 'Teresina - PI, 64000-360' %><br>
+                                <%= treinamento.referencia || '(próximo ao Lindolfo Monteiro)' %>
                             </div>
                         </div>
                     </div>

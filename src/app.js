@@ -166,6 +166,27 @@ app.get('/:codigo', async (req, res) => {
             return res.render('ja-confirmado', { codigo, treinamento: dadosTreinamento });
         }
         
+        // Buscar informações do treinamento do banco
+        const infoTreinamento = await mensagensQueries.buscarPorTipo('info_treinamento');
+        let dadosTreinamento = {};
+        
+        if (infoTreinamento) {
+            try {
+                dadosTreinamento = JSON.parse(infoTreinamento.conteudo);
+            } catch (error) {
+                logger.error('Erro ao parsear dados do treinamento:', error);
+                // Usar dados padrão em caso de erro
+                dadosTreinamento = {
+                    nome_evento: 'CapacitIA – Autonomia Digital para Pessoas Idosas',
+                    local: 'Espaço da Cidadania Digital',
+                    endereco: 'R. Clodoaldo Freitas, 729 - Centro (Norte), Teresina - PI, 64000-360 (próx. ao Lindolfo Monteiro)',
+                    dias: '14 e 16 de outubro de 2025 (terça e quinta)',
+                    horario: '08h às 12h',
+                    mensagem_final: 'Aguardamos você no treinamento!'
+                };
+            }
+        }
+
         let participante = null;
         if (rota.participante_id) {
             const participanteResult = await participantesQueries.findByCodigo(codigo);
@@ -174,7 +195,7 @@ app.get('/:codigo', async (req, res) => {
             }
         }
         
-        res.render('confirmacao', { codigo, participante });
+        res.render('confirmacao', { codigo, participante, treinamento: dadosTreinamento });
     } catch (error) {
         logger.error('Erro ao buscar código:', error);
         res.status(500).render('erro', { 
