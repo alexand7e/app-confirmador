@@ -111,8 +111,8 @@ const participantesQueries = {
     insertParticipante: async (dadosParticipante) => {
         const query = `
             INSERT INTO participantes_importados 
-            (carimbo_data_hora, nome, genero, idade, cpf, cidade, bairro, aposentado, telefone, email, projeto_extensao, outro_projeto, autorizacao_dados, dificuldades) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            (carimbo_data_hora, nome, genero, idade, cpf, cidade, bairro, aposentado, telefone, email, projeto_extensao, outro_projeto, autorizacao_dados, dificuldades, data_incorporacao) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
             RETURNING id
         `;
         return await pool.query(query, [
@@ -129,7 +129,8 @@ const participantesQueries = {
             dadosParticipante.projeto_extensao,
             dadosParticipante.outro_projeto,
             dadosParticipante.autorizacao_dados,
-            dadosParticipante.dificuldades
+            dadosParticipante.dificuldades,
+            dadosParticipante.data_incorporacao
         ]);
     },
 
@@ -152,6 +153,8 @@ const participantesQueries = {
                 p.nome,
                 p.telefone,
                 p.projeto_extensao,
+                p.data_incorporacao,
+                p.carimbo_data_hora,
                 r.codigo,
                 CASE 
                     WHEN c.id IS NOT NULL THEN true 
@@ -174,6 +177,8 @@ const participantesQueries = {
                 p.nome,
                 p.telefone,
                 p.projeto_extensao,
+                p.data_incorporacao,
+                p.carimbo_data_hora,
                 r.codigo,
                 CASE 
                     WHEN c.id IS NOT NULL THEN true 
@@ -246,6 +251,32 @@ const participantesQueries = {
             ORDER BY r.criado_em DESC
         `;
         return await pool.query(query);
+    },
+
+    // Verificar se participante já existe por CPF
+    findByCpf: async (cpf) => {
+        const query = 'SELECT id, nome, telefone FROM participantes_importados WHERE cpf = $1';
+        return await pool.query(query, [cpf]);
+    },
+
+    // Verificar se participante já existe por telefone
+    findByTelefone: async (telefone) => {
+        const query = 'SELECT id, nome, cpf FROM participantes_importados WHERE telefone = $1';
+        return await pool.query(query, [telefone]);
+    },
+
+    // Verificar duplicatas por CPF ou telefone
+    checkDuplicates: async (cpf, telefone) => {
+        const query = `
+            SELECT id, nome, cpf, telefone, 'cpf' as tipo_duplicata
+            FROM participantes_importados 
+            WHERE cpf = $1
+            UNION
+            SELECT id, nome, cpf, telefone, 'telefone' as tipo_duplicata
+            FROM participantes_importados 
+            WHERE telefone = $2
+        `;
+        return await pool.query(query, [cpf, telefone]);
     }
 };
 

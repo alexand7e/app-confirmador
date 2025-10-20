@@ -350,6 +350,107 @@ Estamos muito felizes em receber você! 😊`;
     }
 });
 
+// Processar recusa de participação
+app.post('/api/recusar/:codigo', async (req, res) => {
+    const codigo = req.params.codigo;
+    const { nome, telefone, email } = req.body;
+    
+    logger.debug(`Tentativa de recusa - Código: ${codigo}, Nome: ${nome}, Telefone: ${telefone}, Email: ${email}`);
+    
+    if (!nome || !telefone) {
+        logger.warn(`Dados obrigatórios faltando - Nome: ${nome}, Telefone: ${telefone}`);
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Nome e telefone são obrigatórios.' 
+        });
+    }
+    
+    try {
+        logger.debug(`Buscando rota com código: ${codigo}`);
+        const rotaResult = await rotasQueries.findByCodigo(codigo);
+        
+        if (rotaResult.rows.length === 0) {
+            logger.warn(`Código não encontrado: ${codigo}`);
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Código não encontrado.' 
+            });
+        }
+        
+        const rota = rotaResult.rows[0];
+        logger.debug(`Rota encontrada:`, rota);
+        
+        if (rota.usado) {
+            logger.warn(`Código já utilizado: ${codigo}`);
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Este código já foi utilizado.' 
+            });
+        }
+        
+        logger.debug(`Marcando código como usado: ${codigo}`);
+        await rotasQueries.markAsUsed(codigo);
+        
+        // Enviar webhook para recusa
+        try {
+            const webhookUrl = process.env.N8N_WEBHOOK_URL;
+            if (webhookUrl) {
+                logger.debug(`Enviando webhook de recusa para: ${webhookUrl}`);
+                
+                // Buscar mensagem de recusa do banco de dados
+                const mensagemRecusaResult = await mensagensQueries.buscarPorTipo('recusa_whatsapp');
+                let mensagemRecusa;
+                
+                if (mensagemRecusaResult && mensagemRecusaResult.conteudo) {
+                    // Substituir variáveis na mensagem
+                    mensagemRecusa = mensagemRecusaResult.conteudo
+                        .replace(/{nome}/g, nome);
+                } else {
+                    // Fallback para mensagem hardcoded se não encontrar no banco
+                    logger.warn('Mensagem de recusa não encontrada no banco, usando fallback');
+                    mensagemRecusa = `Olá, ${nome}! 😊
+
+Obrigado por nos informar sobre sua disponibilidade. 💛
+
+Entendemos que você não poderá participar do treinamento CapacitIA – Autonomia Digital para Pessoas Idosas nesta ocasião.
+
+📢 *Fique atento às nossas próximas turmas!*
+Você será sempre bem-vindo(a) em futuras oportunidades.
+
+Para mais informações sobre nossos próximos treinamentos, acompanhe nossos canais de comunicação.`;
+                }
+
+                logger.debug(`Enviando mensagem de recusa`);
+                const response = await axios.post(webhookUrl, {
+                    telefone,
+                    mensagem: mensagemRecusa,
+                    codigo: codigo,
+                    tipo: 'recusa',
+                    nome: nome
+                });
+                
+                logger.info(`Mensagem de recusa enviada para ${nome} (${telefone})`);
+                logger.debug(`Resposta da mensagem de recusa:`, { status: response.status, data: response.data });
+            } else {
+                logger.warn('URL do webhook não configurada');
+            }
+        } catch (webhookError) {
+            logger.error('Erro ao enviar webhook de recusa:', webhookError.message);
+            logger.debug('Detalhes do erro do webhook:', webhookError);
+        }
+        
+        logger.info(`Recusa processada: ${nome} - ${telefone} - Código: ${codigo}`);
+        res.json({ success: true, message: 'Recusa registrada com sucesso!' });
+    } catch (error) {
+        logger.error('Erro ao processar recusa:', error.message);
+        logger.debug('Stack trace do erro:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Erro ao processar recusa: ' + error.message 
+        });
+    }
+});
+
 // Buscar dados do participante por código
 app.get('/api/participante/:codigo', async (req, res) => {
     const codigo = req.params.codigo;
@@ -373,6 +474,207 @@ app.get('/api/participante/:codigo', async (req, res) => {
         res.status(500).json({ 
             success: false, 
             message: 'Erro interno do servidor' 
+        });
+    }
+});
+
+// Rota para verificar participantes
+app.get('/api/admin/verificar-participantes', async (req, res) => {
+    try {
+        // Contar total de participantes
+        const totalResult = await participantesQueries.countParticipantes();
+        const total = totalResult.rows[0].count;
+        
+        // Buscar participantes sem rota
+        const semRotaResult = await participantesQueries.findWithoutRoute();
+        
+        // Buscar últimos 10 participantes
+        const query = `
+            SELECT id, nome, telefone, carimbo_data_hora 
+            FROM participantes_importados 
+            ORDER BY id DESC 
+            LIMIT 10
+        `;
+        const ultimosResult = await pool.query(query);
+        
+        res.json({
+            success: true,
+            total: parseInt(total),
+            semRota: semRotaResult.rows.length,
+            participantesSemRota: semRotaResult.rows,
+            ultimosParticipantes: ultimosResult.rows
+        });
+
+    } catch (error) {
+        logger.error('Erro ao verificar participantes:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Erro ao verificar participantes',
+            details: error.message 
+        });
+    }
+});
+
+// Rota para importar novos participantes
+app.post('/api/admin/importar-novos', async (req, res) => {
+    try {
+        const importService = require('./services/importService');
+        const path = require('path');
+        
+        // Caminho do arquivo JSON
+        const jsonFilePath = path.resolve(__dirname, '..', 'tableConvert.com_0oretq.json');
+        
+        logger.info('Iniciando importação de novos participantes...');
+        const stats = await importService.importFromJson(jsonFilePath);
+        
+        res.json({
+            success: true,
+            message: 'Importação concluída',
+            stats: stats
+        });
+
+    } catch (error) {
+        logger.error('Erro na importação:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Erro durante a importação',
+            details: error.message 
+        });
+    }
+});
+
+// Endpoint para sincronizar dados do Google Sheets
+app.post('/api/admin/sincronizar-google-sheets', requireAuth, async (req, res) => {
+    try {
+        const googleSheetsService = require('./services/googleSheetsService');
+        
+        logger.info('Iniciando sincronização com Google Sheets...');
+        
+        // Obter dados da planilha
+        const participantesSheet = await googleSheetsService.getParticipantsFromSheet();
+        
+        if (participantesSheet.length === 0) {
+            return res.json({
+                success: true,
+                message: 'Nenhum novo participante encontrado na planilha',
+                stats: {
+                    total: 0,
+                    novos: 0,
+                    duplicados: 0,
+                    erros: 0
+                }
+            });
+        }
+        
+        logger.info(`Encontrados ${participantesSheet.length} participantes na planilha`);
+        
+        const stats = {
+            total: participantesSheet.length,
+            novos: 0,
+            duplicados: 0,
+            erros: 0,
+            detalhes: []
+        };
+        
+        // Processar cada participante
+        for (const participante of participantesSheet) {
+            try {
+                // Mapear dados da planilha para estrutura da tabela
+                const dadosMapeados = ParticipantService.mapGoogleSheetsToTableStructure(participante);
+                
+                // Verificar se já existe (por CPF ou telefone)
+                const existeResult = await participantesQueries.checkDuplicates(
+                    dadosMapeados.cpf, 
+                    dadosMapeados.telefone
+                );
+                
+                if (existeResult.rows.length > 0) {
+                    stats.duplicados++;
+                    stats.detalhes.push({
+                        nome: dadosMapeados.nome,
+                        status: 'duplicado',
+                        motivo: 'CPF ou telefone já existe no banco'
+                    });
+                    continue;
+                }
+                
+                // Inserir novo participante
+                const resultado = await participantesQueries.insertParticipante(dadosMapeados);
+                const participanteId = resultado.rows[0].id;
+                
+                // Criar rota para o participante
+                await ParticipantService.createRouteForParticipant(participanteId);
+                
+                stats.novos++;
+                stats.detalhes.push({
+                    nome: dadosMapeados.nome,
+                    status: 'inserido',
+                    participanteId: participanteId
+                });
+                
+            } catch (error) {
+                stats.erros++;
+                stats.detalhes.push({
+                    nome: participante.nome || 'Nome não informado',
+                    status: 'erro',
+                    motivo: error.message
+                });
+                logger.error(`Erro ao processar participante ${participante.nome}:`, error);
+            }
+        }
+        
+        logger.info(`Sincronização concluída: ${stats.novos} novos, ${stats.duplicados} duplicados, ${stats.erros} erros`);
+        
+        res.json({
+            success: true,
+            message: `Sincronização concluída: ${stats.novos} novos participantes adicionados`,
+            stats: stats
+        });
+        
+    } catch (error) {
+        logger.error('Erro na sincronização com Google Sheets:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Erro na sincronização: ' + error.message,
+            details: error.stack
+        });
+    }
+});
+
+// Endpoint para gerar rotas para participantes sem rota
+app.post('/api/admin/gerar-rotas-participantes', async (req, res) => {
+    try {
+        const results = await ParticipantService.createRoutesForParticipantsWithoutRoute();
+        
+        const sucessos = results.filter(r => r.success);
+        const erros = results.filter(r => !r.success);
+        
+        logger.info(`Rotas geradas: ${sucessos.length} sucessos, ${erros.length} erros`);
+        
+        res.json({
+            success: true,
+            message: `${sucessos.length} rotas geradas com sucesso`,
+            stats: {
+                total: results.length,
+                sucessos: sucessos.length,
+                erros: erros.length,
+                rotasGeradas: sucessos.map(s => ({
+                    nome: s.nome,
+                    codigo: s.codigo,
+                    participanteId: s.participanteId
+                })),
+                errosDetalhes: erros.map(e => ({
+                    nome: e.nome,
+                    erro: e.error,
+                    participanteId: e.participanteId
+                }))
+            }
+        });
+    } catch (error) {
+        logger.error('Erro ao gerar rotas:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Erro ao gerar rotas: ' + error.message
         });
     }
 });

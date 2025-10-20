@@ -305,6 +305,58 @@ class ParticipantService {
             };
         }
     }
+
+    // Mapear dados do Google Sheets para estrutura da tabela
+    static mapGoogleSheetsToTableStructure(sheetData) {
+        // Limpar e formatar CPF
+        let cpf = sheetData['CPF'] || sheetData['cpf'] || '';
+        cpf = cpf.replace(/\D/g, ''); // Remove tudo que não é dígito
+        
+        // Limpar e formatar telefone
+        let telefone = sheetData['Telefone'] || sheetData['telefone'] || sheetData['Telefone/Celular/WhatsApp'] || '';
+        telefone = telefone.replace(/\D/g, ''); // Remove tudo que não é dígito
+        
+        // Processar idade
+        let idade = null;
+        const idadeStr = sheetData['Idade'] || sheetData['idade'];
+        if (idadeStr && !isNaN(idadeStr)) {
+            idade = parseInt(idadeStr);
+        }
+
+        // Processar data/hora - usar data de incorporação se disponível
+        let carimboDataHora = null;
+        const dataStr = sheetData['Carimbo de data/hora'] || sheetData['data_incorporacao'];
+        if (dataStr) {
+            const data = new Date(dataStr);
+            if (!isNaN(data.getTime())) {
+                carimboDataHora = data;
+            }
+        }
+        
+        // Se não tiver carimbo, usar data atual
+        if (!carimboDataHora) {
+            carimboDataHora = new Date();
+        }
+
+        return {
+            carimbo_data_hora: carimboDataHora,
+            nome: sheetData['Nome'] || sheetData['nome'] || sheetData['Digite seu nome sem abreviar'] || '',
+            genero: sheetData['Gênero'] || sheetData['genero'] || sheetData['Gênero'] || '',
+            idade: idade,
+            cpf: cpf,
+            cidade: sheetData['Cidade'] || sheetData['cidade'] || '',
+            bairro: sheetData['Bairro'] || sheetData['bairro'] || '',
+            aposentado: sheetData['Aposentado'] || sheetData['aposentado'] || sheetData['Você é aposentado(a)?'] || '',
+            telefone: telefone,
+            email: sheetData['E-mail'] || sheetData['email'] || sheetData['E-mail (se houver)'] || '',
+            projeto_extensao: sheetData['Projeto'] || sheetData['projeto_extensao'] || sheetData['Projeto de Extensão'] || '',
+            outro_projeto: sheetData['Outro Projeto'] || sheetData['outro_projeto'] || '',
+            autorizacao_dados: sheetData['Autorização'] || sheetData['autorizacao_dados'] || 'Sim',
+            dificuldades: sheetData['Dificuldades'] || sheetData['dificuldades'] || '',
+            // Definir data_incorporacao apenas como data atual para novos participantes
+            data_incorporacao: new Date().toISOString().split('T')[0]
+        };
+    }
 }
 
 module.exports = ParticipantService;

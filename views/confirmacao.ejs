@@ -420,13 +420,15 @@
                     }
                 }
 
-                const response = await fetch(`/api/confirmar/<%= codigo %>`, {
+                // Escolher a rota correta baseada na ação
+                const endpoint = isConfirming ? `/api/confirmar/<%= codigo %>` : `/api/recusar/<%= codigo %>`;
+                
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({ 
-                        confirmacao: isConfirming,
                         nome: participanteData.nome,
                         telefone: participanteData.telefone,
                         email: participanteData.email || ''
@@ -444,7 +446,7 @@
                         document.getElementById('declineMessage').style.display = 'block';
                     }
                 } else {
-                    throw new Error(result.error || 'Erro ao processar confirmação');
+                    throw new Error(result.message || 'Erro ao processar solicitação');
                 }
                 
             } catch (error) {
@@ -453,7 +455,7 @@
                 document.querySelector('.form-section').style.display = 'block';
                 document.getElementById('btnConfirm').disabled = false;
                 document.getElementById('btnDecline').disabled = false;
-                showError('Erro ao processar confirmação: ' + error.message);
+                showError('Erro ao processar solicitação: ' + error.message);
             }
         }
         

@@ -146,8 +146,7 @@ class GoogleSheetsService {
                         participant[header] = row[index] || '';
                     });
 
-                    // Adicionar data de incorporação (data atual)
-                    participant.data_incorporacao = new Date().toISOString().split('T')[0];
+                    // Não adicionar data_incorporacao aqui - será definida no mapeamento
                     
                     participants.push(participant);
                 }

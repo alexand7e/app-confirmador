@@ -37,6 +37,21 @@ Estamos muito felizes em receber você! 😊`,
         variaveis: JSON.stringify(['nome', 'local', 'dias', 'horario'])
     },
     {
+        tipo: 'recusa_whatsapp',
+        titulo: 'Mensagem de Recusa de Participação',
+        conteudo: `Olá, {nome}! 😊
+
+Obrigado por nos informar sobre sua disponibilidade. 💛
+
+Entendemos que você não poderá participar do *treinamento CapacitIA – Autonomia Digital* para Pessoas Idosas nesta ocasião.
+
+📢 *Fique atento às nossas próximas turmas!*
+Você será sempre bem-vindo(a) em futuras oportunidades.
+
+Para mais informações sobre nossos próximos treinamentos, acompanhe nossos canais de comunicação.`,
+        variaveis: JSON.stringify(['nome'])
+    },
+    {
         tipo: 'info_treinamento',
         titulo: 'Informações do Treinamento',
         conteudo: JSON.stringify({
@@ -94,7 +109,8 @@ const createTablesQueries = {
             projeto_extensao VARCHAR(255),
             outro_projeto VARCHAR(255),
             autorizacao_dados VARCHAR(10),
-            dificuldades TEXT
+            dificuldades TEXT,
+            data_incorporacao DATE DEFAULT CURRENT_DATE
         )
     `,
 
