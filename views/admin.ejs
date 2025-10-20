@@ -1081,28 +1081,46 @@
             
             // Aplicar filtro por data se especificado
             if (dataInicio || dataFim) {
+                console.log('🔍 Aplicando filtro de data:', { dataInicio, dataFim });
+                console.log('📊 Total de participantes antes do filtro:', participantesFiltrados.length);
+                
                 participantesFiltrados = participantesFiltrados.filter(p => {
                     // Usar data_incorporacao se disponível, senão usar carimbo_data_hora
                     const dataParticipante = p.data_incorporacao || p.carimbo_data_hora;
-                    if (!dataParticipante) return false;
+                    if (!dataParticipante) {
+                        console.log('⚠️ Participante sem data:', p.nome);
+                        return false;
+                    }
                     
+                    // Converter data do participante para formato de data local (sem horário)
                     const dataP = new Date(dataParticipante);
+                    const dataParticipanteLocal = new Date(dataP.getFullYear(), dataP.getMonth(), dataP.getDate());
+                    
+                    console.log('📅 Verificando participante:', p.nome);
+                    console.log('   Data original:', dataParticipante);
+                    console.log('   Data parseada:', dataP);
+                    console.log('   Data local (sem horário):', dataParticipanteLocal);
                     
                     // Verificar data início
                     if (dataInicio) {
-                        const inicio = new Date(dataInicio);
-                        if (dataP < inicio) return false;
+                        const inicio = new Date(dataInicio + 'T00:00:00');
+                        const inicioLocal = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate());
+                        console.log('🔸 Comparando com início:', inicioLocal, 'Resultado:', dataParticipanteLocal >= inicioLocal);
+                        if (dataParticipanteLocal < inicioLocal) return false;
                     }
                     
                     // Verificar data fim
                     if (dataFim) {
-                        const fim = new Date(dataFim);
-                        fim.setHours(23, 59, 59, 999); // Incluir todo o dia
-                        if (dataP > fim) return false;
+                        const fim = new Date(dataFim + 'T23:59:59');
+                        const fimLocal = new Date(fim.getFullYear(), fim.getMonth(), fim.getDate());
+                        console.log('🔹 Comparando com fim:', fimLocal, 'Resultado:', dataParticipanteLocal <= fimLocal);
+                        if (dataParticipanteLocal > fimLocal) return false;
                     }
                     
                     return true;
                 });
+                
+                console.log('✅ Total de participantes após filtro:', participantesFiltrados.length);
             }
             
             // Limpar seleções ao aplicar filtro
