@@ -500,15 +500,61 @@
                     </div>
                     
                     <!-- Filtro por Projeto de Extensão -->
-                    <div style="margin-bottom: 15px; padding: 15px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
-                        <label for="filtroProjetoExtensao" style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">
-                            <i class="fas fa-filter" style="margin-right: 5px; color: #4f46e5;"></i>
-                            Filtrar por Projeto de Extensão:
+                    <div style="margin-bottom: 15px; padding: 15px; background-color: #f0f9ff; border-radius: 8px; border: 2px solid #0ea5e9; box-shadow: 0 2px 4px rgba(14, 165, 233, 0.1);">
+                        <label for="filtroProjetoExtensao" style="display: block; margin-bottom: 8px; font-weight: 700; color: #0c4a6e; font-size: 16px;">
+                            <i class="fas fa-project-diagram" style="margin-right: 8px; color: #0ea5e9;"></i>
+                            🎯 Filtrar por Projeto de Extensão:
                         </label>
-                        <select id="filtroProjetoExtensao" onchange="aplicarFiltroProjetoExtensao()" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; background-color: white; font-size: 14px;">
-                            <option value="">Todos os projetos</option>
+                        <select id="filtroProjetoExtensao" onchange="aplicarFiltros()" style="width: 100%; padding: 12px; border: 2px solid #0ea5e9; border-radius: 8px; background-color: white; font-size: 15px; font-weight: 600; color: #0c4a6e;">
+                            <option value="">📋 Todos os projetos</option>
                         </select>
-                        <div style="margin-top: 8px; font-size: 12px; color: #6b7280;">
+                        <div id="infoProjetoSelecionado" style="margin-top: 8px; padding: 8px; background-color: #e0f2fe; border-radius: 6px; font-size: 13px; color: #0c4a6e; display: none;">
+                            <i class="fas fa-info-circle" style="margin-right: 5px;"></i>
+                            <span id="textoProjetoSelecionado"></span>
+                        </div>
+                    </div>
+
+                    <!-- Filtro por Data de Incorporação -->
+                    <div style="margin-bottom: 15px; padding: 15px; background-color: #f0fdf4; border-radius: 8px; border: 2px solid #22c55e; box-shadow: 0 2px 4px rgba(34, 197, 94, 0.1);">
+                        <label style="display: block; margin-bottom: 12px; font-weight: 700; color: #14532d; font-size: 16px;">
+                            <i class="fas fa-calendar-plus" style="margin-right: 8px; color: #22c55e;"></i>
+                            📅 Filtrar por Data de Incorporação:
+                        </label>
+                        
+                        <!-- Botões de filtro rápido -->
+                        <div style="margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 8px;">
+                            <button onclick="filtrarHoje()" style="padding: 8px 12px; background-color: #22c55e; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                                🆕 Hoje (Novos)
+                            </button>
+                            <button onclick="filtrarOntem()" style="padding: 8px 12px; background-color: #16a34a; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                                📆 Ontem
+                            </button>
+                            <button onclick="filtrarUltimos7Dias()" style="padding: 8px 12px; background-color: #15803d; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                                📊 Últimos 7 dias
+                            </button>
+                            <button onclick="limparFiltroData()" style="padding: 8px 12px; background-color: #6b7280; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                                🗑️ Limpar
+                            </button>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label for="dataInicio" style="display: block; margin-bottom: 4px; font-size: 13px; color: #14532d; font-weight: 600;">📅 Data Início:</label>
+                                <input type="date" id="dataInicio" onchange="aplicarFiltros()" style="width: 100%; padding: 10px; border: 2px solid #22c55e; border-radius: 6px; font-size: 14px; font-weight: 500;">
+                            </div>
+                            <div>
+                                <label for="dataFim" style="display: block; margin-bottom: 4px; font-size: 13px; color: #14532d; font-weight: 600;">📅 Data Fim:</label>
+                                <input type="date" id="dataFim" onchange="aplicarFiltros()" style="width: 100%; padding: 10px; border: 2px solid #22c55e; border-radius: 6px; font-size: 14px; font-weight: 500;">
+                            </div>
+                        </div>
+                        
+                        <div id="infoDataSelecionada" style="margin-top: 12px; padding: 10px; background-color: #dcfce7; border-radius: 6px; font-size: 13px; color: #14532d; display: none;">
+                            <i class="fas fa-info-circle" style="margin-right: 5px;"></i>
+                            <span id="textoDataSelecionada"></span>
+                        </div>
+                        
+                        <div style="margin-top: 8px; font-size: 13px; color: #14532d; font-weight: 600;">
+                            <i class="fas fa-users" style="margin-right: 5px; color: #22c55e;"></i>
                             <span id="contadorFiltrados">0 participantes filtrados</span>
                         </div>
                     </div>
@@ -576,6 +622,9 @@
         <div class="actions-bar">
             <button class="btn btn-success" onclick="carregarConfirmacoes()">
                 <i class="fas fa-sync-alt"></i> Atualizar Dados
+            </button>
+            <button class="btn btn-primary" onclick="sincronizarGoogleSheets()">
+                <i class="fas fa-cloud-download-alt"></i> Sincronizar Google Sheets
             </button>
             <button class="btn btn-warning" onclick="importarDados()">
                 <i class="fas fa-upload"></i> Importar table.json
@@ -988,27 +1037,72 @@
             const projetos = [...new Set(participantesDisponiveis.map(p => p.projeto_extensao).filter(p => p))];
             
             // Limpar opções existentes (exceto "Todos os projetos")
-            select.innerHTML = '<option value="">Todos os projetos</option>';
+            select.innerHTML = '<option value="">📋 Todos os projetos</option>';
             
-            // Adicionar opções únicas
+            // Adicionar opções únicas com contadores e emojis
             projetos.forEach(projeto => {
+                const count = participantesDisponiveis.filter(p => p.projeto_extensao === projeto).length;
                 const option = document.createElement('option');
                 option.value = projeto;
-                option.textContent = projeto;
+                option.textContent = `🎯 ${projeto} (${count} participantes)`;
                 select.appendChild(option);
             });
+            
+            // Adicionar informação sobre total de projetos
+            if (projetos.length > 0) {
+                console.log(`📊 ${projetos.length} projeto(s) de extensão encontrado(s):`, projetos);
+            }
         }
 
-        // Aplicar filtro por projeto de extensão
-        function aplicarFiltroProjetoExtensao() {
-            const filtroSelecionado = document.getElementById('filtroProjetoExtensao').value;
+        // Aplicar filtros combinados (projeto e data)
+        function aplicarFiltros() {
+            const filtroProjetoSelecionado = document.getElementById('filtroProjetoExtensao').value;
+            const dataInicio = document.getElementById('dataInicio').value;
+            const dataFim = document.getElementById('dataFim').value;
             
-            if (filtroSelecionado === '') {
-                // Mostrar todos os participantes
-                participantesFiltrados = [...participantesDisponiveis];
+            // Começar com todos os participantes
+            participantesFiltrados = [...participantesDisponiveis];
+            
+            // Aplicar filtro por projeto se selecionado
+            if (filtroProjetoSelecionado !== '') {
+                participantesFiltrados = participantesFiltrados.filter(p => p.projeto_extensao === filtroProjetoSelecionado);
+                
+                // Mostrar informações do projeto selecionado
+                const infoDiv = document.getElementById('infoProjetoSelecionado');
+                const textoSpan = document.getElementById('textoProjetoSelecionado');
+                const totalProjeto = participantesFiltrados.length;
+                
+                textoSpan.textContent = `Projeto "${filtroProjetoSelecionado}" selecionado - ${totalProjeto} participante(s) encontrado(s)`;
+                infoDiv.style.display = 'block';
             } else {
-                // Filtrar por projeto selecionado
-                participantesFiltrados = participantesDisponiveis.filter(p => p.projeto_extensao === filtroSelecionado);
+                // Ocultar informações quando "Todos os projetos" está selecionado
+                document.getElementById('infoProjetoSelecionado').style.display = 'none';
+            }
+            
+            // Aplicar filtro por data se especificado
+            if (dataInicio || dataFim) {
+                participantesFiltrados = participantesFiltrados.filter(p => {
+                    // Usar data_incorporacao se disponível, senão usar carimbo_data_hora
+                    const dataParticipante = p.data_incorporacao || p.carimbo_data_hora;
+                    if (!dataParticipante) return false;
+                    
+                    const dataP = new Date(dataParticipante);
+                    
+                    // Verificar data início
+                    if (dataInicio) {
+                        const inicio = new Date(dataInicio);
+                        if (dataP < inicio) return false;
+                    }
+                    
+                    // Verificar data fim
+                    if (dataFim) {
+                        const fim = new Date(dataFim);
+                        fim.setHours(23, 59, 59, 999); // Incluir todo o dia
+                        if (dataP > fim) return false;
+                    }
+                    
+                    return true;
+                });
             }
             
             // Limpar seleções ao aplicar filtro
@@ -1029,8 +1123,30 @@
             if (participantesFiltrados.length === 0) {
                 document.getElementById('loadingParticipantes').innerHTML = 
                     '<div style="color: #64748b;">Nenhum participante disponível para envio</div>';
-                document.getElementById('contadorFiltrados').textContent = '0 participantes filtrados';
+                document.getElementById('contadorFiltrados').innerHTML = 
+                    '<i class="fas fa-users" style="margin-right: 5px; color: #ef4444;"></i>0 participantes filtrados';
                 return;
+            }
+            
+            // Atualizar contador com informações mais detalhadas
+            const totalFiltrados = participantesFiltrados.length;
+            const contadorElement = document.getElementById('contadorFiltrados');
+            
+            if (totalFiltrados > 0) {
+                let textoContador = `<i class="fas fa-users" style="margin-right: 5px; color: #22c55e;"></i>${totalFiltrados} participante(s) filtrado(s)`;
+                
+                // Adicionar informação especial se filtrou por hoje (provável novos participantes)
+                const dataInicio = document.getElementById('dataInicio').value;
+                const dataFim = document.getElementById('dataFim').value;
+                const hoje = new Date().toISOString().split('T')[0];
+                
+                if (dataInicio === hoje && dataFim === hoje) {
+                    textoContador += ` <span style="color: #22c55e; font-weight: 700;">🆕 (Novos de hoje!)</span>`;
+                }
+                
+                contadorElement.innerHTML = textoContador;
+            } else {
+                contadorElement.innerHTML = '<i class="fas fa-users" style="margin-right: 5px; color: #ef4444;"></i>0 participantes filtrados';
             }
             
             participantesFiltrados.forEach(participante => {
@@ -1695,6 +1811,127 @@
         document.addEventListener('DOMContentLoaded', function() {
             carregarMensagens();
         });
+
+        // Função para sincronizar dados do Google Sheets
+        async function sincronizarGoogleSheets() {
+            try {
+                const button = event.target;
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sincronizando...';
+                button.disabled = true;
+
+                const response = await fetch('/api/admin/sincronizar-google-sheets', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Basic ' + btoa('admin:' + '<%= process.env.ADMIN_PASSWORD || "admin123" %>')
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    let mensagem = `Sincronização concluída!\n\n`;
+                    mensagem += `Total processados: ${data.stats.total}\n`;
+                    mensagem += `Novos participantes: ${data.stats.novos}\n`;
+                    mensagem += `Duplicados: ${data.stats.duplicados}\n`;
+                    mensagem += `Erros: ${data.stats.erros}`;
+
+                    if (data.stats.detalhes && data.stats.detalhes.length > 0) {
+                        mensagem += `\n\nDetalhes:\n`;
+                        data.stats.detalhes.slice(0, 10).forEach(detalhe => {
+                            mensagem += `- ${detalhe.nome}: ${detalhe.status}\n`;
+                        });
+                        if (data.stats.detalhes.length > 10) {
+                            mensagem += `... e mais ${data.stats.detalhes.length - 10} registros`;
+                        }
+                    }
+
+                    alert(mensagem);
+                    
+                    // Atualizar dados da página
+                    carregarConfirmacoes();
+                } else {
+                    alert('Erro na sincronização: ' + (data.message || 'Erro desconhecido'));
+                }
+
+            } catch (error) {
+                console.error('Erro ao sincronizar Google Sheets:', error);
+                alert('Erro ao sincronizar: ' + error.message);
+            } finally {
+                const button = event.target;
+                button.innerHTML = '<i class="fas fa-cloud-download-alt"></i> Sincronizar Google Sheets';
+                button.disabled = false;
+            }
+        }
+
+        // Funções de filtro rápido por data
+        function filtrarHoje() {
+            const hoje = new Date().toISOString().split('T')[0];
+            document.getElementById('dataInicio').value = hoje;
+            document.getElementById('dataFim').value = hoje;
+            
+            // Mostrar informação da data selecionada
+            const infoDiv = document.getElementById('infoDataSelecionada');
+            const textoSpan = document.getElementById('textoDataSelecionada');
+            textoSpan.textContent = `Filtrando participantes de hoje (${formatarDataBrasil(hoje)}) - Ideal para encontrar os novos participantes!`;
+            infoDiv.style.display = 'block';
+            
+            aplicarFiltros();
+        }
+
+        function filtrarOntem() {
+            const ontem = new Date();
+            ontem.setDate(ontem.getDate() - 1);
+            const dataOntem = ontem.toISOString().split('T')[0];
+            
+            document.getElementById('dataInicio').value = dataOntem;
+            document.getElementById('dataFim').value = dataOntem;
+            
+            // Mostrar informação da data selecionada
+            const infoDiv = document.getElementById('infoDataSelecionada');
+            const textoSpan = document.getElementById('textoDataSelecionada');
+            textoSpan.textContent = `Filtrando participantes de ontem (${formatarDataBrasil(dataOntem)})`;
+            infoDiv.style.display = 'block';
+            
+            aplicarFiltros();
+        }
+
+        function filtrarUltimos7Dias() {
+            const hoje = new Date();
+            const seteDiasAtras = new Date();
+            seteDiasAtras.setDate(hoje.getDate() - 7);
+            
+            const dataInicio = seteDiasAtras.toISOString().split('T')[0];
+            const dataFim = hoje.toISOString().split('T')[0];
+            
+            document.getElementById('dataInicio').value = dataInicio;
+            document.getElementById('dataFim').value = dataFim;
+            
+            // Mostrar informação da data selecionada
+            const infoDiv = document.getElementById('infoDataSelecionada');
+            const textoSpan = document.getElementById('textoDataSelecionada');
+            textoSpan.textContent = `Filtrando participantes dos últimos 7 dias (${formatarDataBrasil(dataInicio)} até ${formatarDataBrasil(dataFim)})`;
+            infoDiv.style.display = 'block';
+            
+            aplicarFiltros();
+        }
+
+        function limparFiltroData() {
+            document.getElementById('dataInicio').value = '';
+            document.getElementById('dataFim').value = '';
+            
+            // Ocultar informação da data selecionada
+            document.getElementById('infoDataSelecionada').style.display = 'none';
+            
+            aplicarFiltros();
+        }
+
+        function formatarDataBrasil(dataISO) {
+            const data = new Date(dataISO + 'T00:00:00');
+            return data.toLocaleDateString('pt-BR');
+        }
     </script>
 </body>
 </html>
